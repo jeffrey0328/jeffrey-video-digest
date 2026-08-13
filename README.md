@@ -2,6 +2,8 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+This project is a personal remix of [YouTube Digest](https://github.com/zarazhangrui/youtube-digest) by [Zara Zhang](https://github.com/zarazhangrui). The original author retains copyright of the upstream work.
+
 Turn every YouTube video into a resource for deep learning. YouTube Digest brings transcripts, bilingual translation, AI overviews, explanations, and timestamped notes into one Chrome side panel, so you can study ideas and language without losing your place.
 
 - Turn captions into a readable, searchable learning resource.
@@ -223,4 +225,6 @@ The agent should also reload the unpacked extension in Chrome and test several r
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. Original work © 2026 [Zara Zhang](https://github.com/zarazhangrui). See [LICENSE](LICENSE).
+
+This repository remixes [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest). Please credit the original author if you reuse or remix this code.

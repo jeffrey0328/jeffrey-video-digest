@@ -2,6 +2,8 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+本项目是对 [Zara Zhang](https://github.com/zarazhangrui) 的 [YouTube Digest](https://github.com/zarazhangrui/youtube-digest) 的个人二创。原作版权仍归原作者所有。
+
 把每个 YouTube 视频变成一份可以深入学习的资料。YouTube Digest 把字幕、双语翻译、AI 概览、内容讲解和时间戳笔记放进同一个 Chrome 侧边栏，让你可以持续学习视频中的知识和语言，同时不丢失原视频上下文。
 
 - 把零碎字幕变成清晰、可搜索的学习资料。
@@ -223,4 +225,6 @@ Agent 还应该在 Chrome 中重新加载扩展，并测试多个真实 YouTube 
 
 ## 开源许可
 
-MIT，详见 [LICENSE](LICENSE)。
+MIT。原作 © 2026 [Zara Zhang](https://github.com/zarazhangrui)，详见 [LICENSE](LICENSE)。
+
+本仓库基于 [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest) 二创。若你继续使用或再创作，请保留对原作者的署名。
