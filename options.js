@@ -1,12 +1,16 @@
 const YTD_OPTIONS = (() => {
-  const LANGUAGE_STORAGE_KEY = "ytd_options_language";
-  const PREVIEW_STORAGE_PREFIX = "youtubeDigestPreview:";
-  const SUPPORTED_LANGUAGES = new Set(["en", "zh-CN"]);
+  const i18n =
+    typeof YTD_I18N !== "undefined"
+      ? YTD_I18N
+      : typeof require !== "undefined"
+        ? require("./i18n.js")
+        : null;
 
   const COPY = {
     en: {
-      pageTitle: "YouTube Digest Settings",
+      pageTitle: "Jeffrey Video Digest Settings",
       languageGroupLabel: "Interface language",
+      languageSwitchLabel: "Use Chinese interface",
       heading: "Bring your own API keys",
       lede:
         "Keys stay in this Chrome profile and are sent only to Supadata and DeepSeek. This open-source extension has no developer server or analytics.",
@@ -21,7 +25,7 @@ const YTD_OPTIONS = (() => {
       providerBadge: "Supported in this version",
       deepseekApiKeyLabel: "DeepSeek API key",
       deepseekHelp:
-        "YouTube Digest uses DeepSeek V4 Flash for overviews, explanations, translation, and note polishing. ",
+        "Jeffrey Video Digest uses DeepSeek V4 Flash for overviews, explanations, translation, and note polishing. ",
       deepseekLink: "Create a DeepSeek API key",
       deepseekHelpSuffix: ".",
       privacyNote:
@@ -34,7 +38,7 @@ const YTD_OPTIONS = (() => {
       customizationIntro:
         "You can edit the prompt directly. Complete these three steps before copying:",
       customizationStepFolder:
-        "Open the extracted YouTube Digest project folder in your coding agent.",
+        "Open the extracted Jeffrey Video Digest project folder in your coding agent.",
       customizationStepReplace:
         "Replace [PROVIDER] and [MODEL] with the service and model you want to use.",
       customizationStepKeys:
@@ -44,7 +48,7 @@ const YTD_OPTIONS = (() => {
       customizationReminder:
         "Before copying, replace [PROVIDER] and [MODEL] with the provider and model you want to use.",
       customizationPrompt:
-        "Customize this local YouTube Digest workspace to use [PROVIDER] with [MODEL]. Work only in the current workspace. Before editing, verify that it contains manifest.json and that the manifest name is YouTube Digest. If verification fails, stop and ask me to open the extracted YouTube Digest project folder in my coding agent. Do not search other folders, edit a guessed copy, assume an installation path, or claim Chrome can reveal the absolute OS source path. Update the provider's API endpoint, request format, and minimum Chrome host permissions. Preserve bring-your-own-key and local Chrome storage. Never put API keys in source code, commits, logs, screenshots, this prompt, or chat; after the code is ready, tell me where to enter the key myself. Keep DeepSeek-only request fields and retry behavior isolated to DeepSeek. Handle provider-specific rules separately so one provider does not affect another. Update README.md, README.zh-CN.md, PRIVACY.md, SECURITY.md, and tests. Run npm test, npm run check, and npm run package. Then explain how to reload the unpacked extension and test it on a real YouTube video.",
+        "Customize this local Jeffrey Video Digest workspace to use [PROVIDER] with [MODEL]. Work only in the current workspace. Before editing, verify that it contains manifest.json and that the manifest name is Jeffrey Video Digest. If verification fails, stop and ask me to open the extracted Jeffrey Video Digest project folder in my coding agent. Do not search other folders, edit a guessed copy, assume an installation path, or claim Chrome can reveal the absolute OS source path. Update the provider's API endpoint, request format, and minimum Chrome host permissions. Preserve bring-your-own-key and local Chrome storage. Never put API keys in source code, commits, logs, screenshots, this prompt, or chat; after the code is ready, tell me where to enter the key myself. Keep DeepSeek-only request fields and retry behavior isolated to DeepSeek. Handle provider-specific rules separately so one provider does not affect another. Update README.md, README.zh-CN.md, PRIVACY.md, SECURITY.md, and tests. Run npm test, npm run check, and npm run package. Then explain how to reload the unpacked extension and test it on a real YouTube video.",
       copyCustomizationPrompt: "Copy edited prompt",
       localData: "Local data",
       localDataHelp:
@@ -59,7 +63,7 @@ const YTD_OPTIONS = (() => {
       saving: "Saving…",
       addSupadataKey: "Add a Supadata API key.",
       addDeepseekKey: "Add a DeepSeek API key.",
-      saved: "Saved. Reopen YouTube Digest to use these settings.",
+      saved: "Saved. Reopen Jeffrey Video Digest to use these settings.",
       saveFailed: "Could not save settings. Please try again.",
       copying: "Copying…",
       promptCopied: "Edited prompt copied.",
@@ -70,13 +74,14 @@ const YTD_OPTIONS = (() => {
       notesDeleted: "Deleted all saved notes.",
       resetConfirm:
         "Delete API keys, cached digests, translations, and saved notes from this Chrome profile?",
-      allDataDeleted: "All YouTube Digest data was deleted.",
+      allDataDeleted: "All Jeffrey Video Digest data was deleted.",
       settingsLoadFailed:
         "Could not load saved settings. You can still preview this page.",
     },
     "zh-CN": {
-      pageTitle: "YouTube Digest 设置",
+      pageTitle: "Jeffrey Video Digest 设置",
       languageGroupLabel: "界面语言",
+      languageSwitchLabel: "使用中文界面",
       heading: "使用你自己的 API 密钥",
       lede:
         "密钥仅保存在当前 Chrome 个人资料中，只会发送给 Supadata 和 DeepSeek。本开源扩展没有开发者服务器，也不使用分析服务。",
@@ -90,7 +95,7 @@ const YTD_OPTIONS = (() => {
       providerBadge: "当前版本支持",
       deepseekApiKeyLabel: "DeepSeek API 密钥",
       deepseekHelp:
-        "YouTube Digest 使用 DeepSeek V4 Flash 生成概览、解释内容、翻译字幕和润色笔记。",
+        "Jeffrey Video Digest 使用 DeepSeek V4 Flash 生成概览、解释内容、翻译字幕和润色笔记。",
       deepseekLink: "创建 DeepSeek API 密钥",
       deepseekHelpSuffix: "。",
       privacyNote:
@@ -102,7 +107,7 @@ const YTD_OPTIONS = (() => {
       agentBadge: "可交给编程 Agent",
       customizationIntro: "你可以直接编辑提示词。复制前完成以下三步：",
       customizationStepFolder:
-        "在编程 Agent 中打开 YouTube Digest 解压后的项目文件夹。",
+        "在编程 Agent 中打开 Jeffrey Video Digest 解压后的项目文件夹。",
       customizationStepReplace:
         "把 [PROVIDER] 和 [MODEL] 替换成你想使用的服务和模型。",
       customizationStepKeys:
@@ -112,7 +117,7 @@ const YTD_OPTIONS = (() => {
       customizationReminder:
         "复制前，请先把 [PROVIDER] 和 [MODEL] 替换成你想使用的服务和模型。",
       customizationPrompt:
-        "请把当前本地 YouTube Digest 工作区改为使用 [PROVIDER] 提供的 [MODEL]。只在当前工作区中操作。编辑前，先确认其中包含 manifest.json，且 manifest 中的 name 是 YouTube Digest。如果验证失败，请停止，并让我在编程 Agent 中打开 YouTube Digest 解压后的项目文件夹。不要搜索其他文件夹，不要编辑猜测的副本，不要假设安装路径，也不要声称 Chrome 可以显示操作系统中的绝对源码路径。更新该服务的 API endpoint、请求格式和最少的 Chrome host permissions。保留用户自带密钥模式和 Chrome 本地存储。不要把 API 密钥写入源代码、提交记录、日志、截图、这段提示词或聊天；代码准备好后，请告诉我应该在哪里自行填写密钥。DeepSeek 专用的请求参数和重试逻辑继续只用于 DeepSeek。新服务的专属规则请单独处理，避免相互影响。更新 README.md、README.zh-CN.md、PRIVACY.md、SECURITY.md 和测试。运行 npm test、npm run check 和 npm run package。最后，说明如何重新加载已解压的扩展，并在真实 YouTube 视频上测试。",
+        "请把当前本地 Jeffrey Video Digest 工作区改为使用 [PROVIDER] 提供的 [MODEL]。只在当前工作区中操作。编辑前，先确认其中包含 manifest.json，且 manifest 中的 name 是 Jeffrey Video Digest。如果验证失败，请停止，并让我在编程 Agent 中打开 Jeffrey Video Digest 解压后的项目文件夹。不要搜索其他文件夹，不要编辑猜测的副本，不要假设安装路径，也不要声称 Chrome 可以显示操作系统中的绝对源码路径。更新该服务的 API endpoint、请求格式和最少的 Chrome host permissions。保留用户自带密钥模式和 Chrome 本地存储。不要把 API 密钥写入源代码、提交记录、日志、截图、这段提示词或聊天；代码准备好后，请告诉我应该在哪里自行填写密钥。DeepSeek 专用的请求参数和重试逻辑继续只用于 DeepSeek。新服务的专属规则请单独处理，避免相互影响。更新 README.md、README.zh-CN.md、PRIVACY.md、SECURITY.md 和测试。运行 npm test、npm run check 和 npm run package。最后，说明如何重新加载已解压的扩展，并在真实 YouTube 视频上测试。",
       copyCustomizationPrompt: "复制编辑后的提示词",
       localData: "本地数据",
       localDataHelp:
@@ -127,7 +132,7 @@ const YTD_OPTIONS = (() => {
       saving: "正在保存…",
       addSupadataKey: "请添加 Supadata API 密钥。",
       addDeepseekKey: "请添加 DeepSeek API 密钥。",
-      saved: "已保存。请重新打开 YouTube Digest 以使用这些设置。",
+      saved: "已保存。请重新打开 Jeffrey Video Digest 以使用这些设置。",
       saveFailed: "无法保存设置，请重试。",
       copying: "正在复制…",
       promptCopied: "已复制编辑后的提示词。",
@@ -136,13 +141,20 @@ const YTD_OPTIONS = (() => {
       notesDeleted: "已删除全部已保存的笔记。",
       resetConfirm:
         "要从当前 Chrome 个人资料中删除 API 密钥、缓存摘要、翻译和已保存的笔记吗？",
-      allDataDeleted: "已删除全部 YouTube Digest 数据。",
+      allDataDeleted: "已删除全部 Jeffrey Video Digest 数据。",
       settingsLoadFailed: "无法加载已保存的设置，但你仍可预览此页面。",
     },
   };
 
+  function requireI18n() {
+    if (!i18n) {
+      throw new Error("YTD_I18N is required. Load i18n.js before options.js.");
+    }
+    return i18n;
+  }
+
   function normalizeLanguage(language) {
-    return SUPPORTED_LANGUAGES.has(language) ? language : "en";
+    return requireI18n().normalizeLanguage(language);
   }
 
   function translate(language, key, params = {}) {
@@ -152,118 +164,22 @@ const YTD_OPTIONS = (() => {
   }
 
   function createStorageAdapter(chromeApi, fallbackStorage) {
-    const chromeStorage = chromeApi?.storage?.local;
-    const memoryStorage = new Map();
-
-    function fallbackKeys() {
-      const keys = [];
-      if (!fallbackStorage) return keys;
-      try {
-        for (let index = 0; index < fallbackStorage.length; index += 1) {
-          const key = fallbackStorage.key(index);
-          if (key?.startsWith(PREVIEW_STORAGE_PREFIX)) keys.push(key);
-        }
-      } catch (_error) {
-        return [];
-      }
-      return keys;
-    }
-
-    function readFallbackValue(key) {
-      try {
-        const rawValue = fallbackStorage?.getItem(
-          `${PREVIEW_STORAGE_PREFIX}${key}`,
-        );
-        if (rawValue !== null && rawValue !== undefined) {
-          return JSON.parse(rawValue);
-        }
-      } catch (_error) {
-        // Fall through to memory when localStorage is unavailable or malformed.
-      }
-      return memoryStorage.get(key);
-    }
-
-    function writeFallbackValue(key, value) {
-      memoryStorage.set(key, value);
-      try {
-        fallbackStorage?.setItem(
-          `${PREVIEW_STORAGE_PREFIX}${key}`,
-          JSON.stringify(value),
-        );
-      } catch (_error) {
-        // The in-memory copy keeps a restricted preview functional.
-      }
-    }
-
-    return {
-      async get(keys) {
-        if (chromeStorage) return chromeStorage.get(keys);
-
-        const requestedKeys =
-          keys === null
-            ? [
-                ...new Set([
-                  ...memoryStorage.keys(),
-                  ...fallbackKeys().map((key) =>
-                    key.slice(PREVIEW_STORAGE_PREFIX.length),
-                  ),
-                ]),
-              ]
-            : Array.isArray(keys)
-              ? keys
-              : [keys];
-
-        return Object.fromEntries(
-          requestedKeys
-            .map((key) => [key, readFallbackValue(key)])
-            .filter(([, value]) => value !== undefined),
-        );
-      },
-
-      async set(items) {
-        if (chromeStorage) return chromeStorage.set(items);
-        for (const [key, value] of Object.entries(items)) {
-          writeFallbackValue(key, value);
-        }
-      },
-
-      async remove(keys) {
-        if (chromeStorage) return chromeStorage.remove(keys);
-        for (const key of Array.isArray(keys) ? keys : [keys]) {
-          memoryStorage.delete(key);
-          try {
-            fallbackStorage?.removeItem(`${PREVIEW_STORAGE_PREFIX}${key}`);
-          } catch (_error) {
-            // Memory removal is sufficient for this preview session.
-          }
-        }
-      },
-
-      async clear() {
-        if (chromeStorage) return chromeStorage.clear();
-        memoryStorage.clear();
-        for (const key of fallbackKeys()) {
-          try {
-            fallbackStorage.removeItem(key);
-          } catch (_error) {
-            // Continue clearing any remaining preview keys.
-          }
-        }
-      },
-    };
+    return requireI18n().createStorageAdapter(chromeApi, fallbackStorage);
   }
 
   async function readPreferredLanguage(storage) {
-    const stored = await storage.get(LANGUAGE_STORAGE_KEY);
-    return normalizeLanguage(stored[LANGUAGE_STORAGE_KEY]);
+    return requireI18n().readPreferredLanguage(storage);
   }
 
   async function persistPreferredLanguage(storage, language) {
-    const normalizedLanguage = normalizeLanguage(language);
-    await storage.set({ [LANGUAGE_STORAGE_KEY]: normalizedLanguage });
-    return normalizedLanguage;
+    return requireI18n().persistPreferredLanguage(storage, language);
   }
 
+  function updateLanguageSliderState(root, language) {
+    requireI18n().updateLanguageSliderState(root, language);
+  }
+
+  // Kept for older tests that still import the button helper name.
   function updateLanguageButtonState(buttons, language) {
     const normalizedLanguage = normalizeLanguage(language);
     for (const button of buttons) {
@@ -339,6 +255,7 @@ const YTD_OPTIONS = (() => {
   }
 
   function initialize(root = globalThis) {
+    const api = requireI18n();
     const doc = root.document;
     const settingsApi = root.YTD_SETTINGS;
     if (!doc || !settingsApi) return;
@@ -357,10 +274,10 @@ const YTD_OPTIONS = (() => {
     const copyStatus = doc.getElementById("copyStatus");
     const saveStatus = doc.getElementById("saveStatus");
     const dataStatus = doc.getElementById("dataStatus");
-    const languageButtons = [...doc.querySelectorAll("[data-language]")];
     const statusStates = new Map();
     const promptDrafts = createPromptDrafts();
     let currentLanguage = "en";
+    let applyingRemoteLanguage = false;
 
     function renderStatus(element) {
       const state = statusStates.get(element);
@@ -385,31 +302,17 @@ const YTD_OPTIONS = (() => {
       doc.documentElement.lang = currentLanguage;
       doc.title = translate(currentLanguage, "pageTitle");
 
-      for (const element of doc.querySelectorAll("[data-i18n]")) {
-        element.textContent = translate(
-          currentLanguage,
-          element.dataset.i18n,
-        );
-      }
-      for (const element of doc.querySelectorAll("[data-i18n-html]")) {
-        element.innerHTML = translate(
-          currentLanguage,
-          element.dataset.i18nHtml,
-        );
-      }
-      for (const element of doc.querySelectorAll("[data-i18n-aria-label]")) {
-        element.setAttribute(
-          "aria-label",
-          translate(currentLanguage, element.dataset.i18nAriaLabel),
-        );
-      }
-
-      updateLocalizedPrompt(
-        customizationPrompt,
-        nextDraft.prompt,
-      );
-      updateLanguageButtonState(languageButtons, currentLanguage);
+      api.applyStaticI18n(doc, currentLanguage, translate);
+      updateLocalizedPrompt(customizationPrompt, nextDraft.prompt);
+      api.updateLanguageSliderState(doc, currentLanguage);
       for (const element of statusStates.keys()) renderStatus(element);
+    }
+
+    async function setLanguage(language) {
+      applyLanguage(language);
+      if (!applyingRemoteLanguage) {
+        await persistPreferredLanguage(storage, language);
+      }
     }
 
     async function loadSettings() {
@@ -513,13 +416,21 @@ const YTD_OPTIONS = (() => {
       .addEventListener("click", clearCachedDigests);
     doc.getElementById("clearNotesBtn").addEventListener("click", clearNotes);
     doc.getElementById("resetBtn").addEventListener("click", resetAllData);
-    for (const button of languageButtons) {
-      button.addEventListener("click", async () => {
-        const language = button.dataset.language;
+
+    api.bindLanguageSlider(doc, {
+      getLanguage: () => currentLanguage,
+      setLanguage,
+    });
+
+    api.watchLanguagePreference(root.chrome, (language) => {
+      if (language === currentLanguage) return;
+      applyingRemoteLanguage = true;
+      try {
         applyLanguage(language);
-        await persistPreferredLanguage(storage, language);
-      });
-    }
+      } finally {
+        applyingRemoteLanguage = false;
+      }
+    });
 
     if (doc.readyState === "loading") {
       doc.addEventListener("DOMContentLoaded", loadOptions, { once: true });
@@ -530,7 +441,7 @@ const YTD_OPTIONS = (() => {
 
   return {
     COPY,
-    LANGUAGE_STORAGE_KEY,
+    LANGUAGE_STORAGE_KEY: i18n?.LANGUAGE_STORAGE_KEY || "ytd_options_language",
     copyPromptValue,
     createPromptDrafts,
     createStorageAdapter,
@@ -539,6 +450,7 @@ const YTD_OPTIONS = (() => {
     readPreferredLanguage,
     translate,
     updateLanguageButtonState,
+    updateLanguageSliderState,
     updateLocalizedPrompt,
     switchPromptDraft,
     initialize,

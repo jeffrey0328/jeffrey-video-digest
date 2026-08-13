@@ -30,6 +30,79 @@ let ytdDigestButton = null;
 let digestButtonObserver = null;
 let digestButtonReconcileTimer = null;
 let digestButtonResizeListenerAdded = false;
+let ytdCoachRoot = null;
+let coachMarksActive = false;
+let coachNoteForcedVisible = false;
+const coachHighlightRestores = new Map();
+const COACH_DISMISS_KEY = "ytd_coach_marks_dismissed";
+const COACH_SESSION_DISMISS_KEY = "ytd_sidepanel_nudge_dismissed";
+const COACH_Z_OVERLAY = "100000";
+const COACH_Z_TARGET = "100001";
+const COACH_Z_CARD = "100002";
+
+const COACH_COPY = {
+  en: {
+    dialogLabel: "Jeffrey Video Digest controls",
+    dismissLabel: "Got it",
+    dismissAria: "Dismiss",
+    dontShowAgain: "Don't show again",
+  },
+  "zh-CN": {
+    dialogLabel: "Jeffrey Video Digest 控件",
+    dismissLabel: "知道了",
+    dismissAria: "关闭",
+    dontShowAgain: "以后不再提示",
+  },
+};
+
+/**
+ * Extensible registry of on-page interactive controls to spotlight for new users.
+ * Add entries here when new injected controls ship.
+ * `placement` puts the explanation callout relative to the control.
+ */
+const COACH_TARGETS = [
+  {
+    id: "ytd-digest-button",
+    getElement: () =>
+      ytdDigestButton?.isConnected
+        ? ytdDigestButton
+        : document.getElementById("ytd-digest-button"),
+    label: {
+      en: "Digest — open the side panel",
+      "zh-CN": "Digest — 打开侧边栏",
+    },
+    placement: "below",
+  },
+  {
+    id: "ytd-note-button",
+    getElement: () =>
+      ytdNoteButton?.isConnected
+        ? ytdNoteButton
+        : document.getElementById("ytd-note-button"),
+    label: {
+      en: "Note — save a timestamped note",
+      "zh-CN": "Note — 保存带时间戳的笔记",
+    },
+    placement: "left",
+    ensureVisible: ensureCoachNoteVisible,
+  },
+];
+
+let coachLayoutCleanups = [];
+let coachResizeHandler = null;
+
+async function getUiLanguage() {
+  try {
+    const result = await chrome.runtime.sendMessage({ action: "getUiLanguage" });
+    return result?.language === "zh-CN" ? "zh-CN" : "en";
+  } catch {
+    return "en";
+  }
+}
+
+function coachCopy(language) {
+  return COACH_COPY[language] || COACH_COPY.en;
+}
 
 // ============================================================
 // INITIALIZATION
@@ -49,11 +122,538 @@ function init() {
   // Try to inject the buttons immediately
   injectDigestButton();
   tryInjectNoteButton();
+  void showCoachMarks();
 
   // Also set up an observer to handle YouTube's dynamic content loading
   // (YouTube is an SPA, so elements appear/disappear as you navigate)
   setupButtonObserver();
   setupDigestButtonResizeListener();
+}
+
+function openSidePanelFromUserGesture() {
+  debugLog("[Jeffrey Video Digest] Opening side panel from user gesture");
+  // Keep this synchronous: Chrome only preserves the user-gesture token for
+  // sidePanel.open() if the background handles the message without the content
+  // script awaiting other work first.
+  try {
+    chrome.runtime.sendMessage({ action: "openSidePanel" }, (result) => {
+      if (chrome.runtime.lastError) {
+        console.error(
+          "[Jeffrey Video Digest] Failed to open side panel:",
+          chrome.runtime.lastError.message,
+        );
+        return;
+      }
+      debugLog("[Jeffrey Video Digest] openSidePanel response:", result);
+    });
+  } catch (err) {
+    console.error("[Jeffrey Video Digest] Failed to open side panel:", err);
+  }
+}
+
+async function isCoachMarksDismissed() {
+  try {
+    if (sessionStorage.getItem(COACH_SESSION_DISMISS_KEY) === "1") {
+      return true;
+    }
+  } catch {
+    // Ignore sessionStorage failures and fall through to persistent storage.
+  }
+
+  // Content scripts cannot read chrome.storage.local (TRUSTED_CONTEXTS).
+  try {
+    const result = await chrome.runtime.sendMessage({
+      action: "getCoachMarksDismissed",
+    });
+    return Boolean(result?.dismissed);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * @param {{ permanent?: boolean }} [options]
+ * permanent=true persists via the background so the coach never returns.
+ * Otherwise only this tab/session is suppressed.
+ */
+async function dismissCoachMarks({ permanent = false } = {}) {
+  if (permanent) {
+    try {
+      const result = await chrome.runtime.sendMessage({
+        action: "setCoachMarksDismissed",
+      });
+      if (!result?.success) {
+        console.error(
+          "[Jeffrey Video Digest] Failed to persist coach dismiss:",
+          result?.error || "unknown error",
+        );
+      }
+    } catch (error) {
+      console.error("[Jeffrey Video Digest] Failed to persist coach dismiss:", error);
+    }
+  }
+
+  try {
+    sessionStorage.setItem(COACH_SESSION_DISMISS_KEY, "1");
+  } catch {
+    // Private mode or blocked storage — still remove the visible coach.
+  }
+  removeCoachMarks();
+}
+
+function ensureCoachNoteVisible() {
+  coachNoteForcedVisible = true;
+  if (ytdNoteButtonTimer) {
+    clearTimeout(ytdNoteButtonTimer);
+    ytdNoteButtonTimer = null;
+  }
+  const button =
+    ytdNoteButton?.isConnected
+      ? ytdNoteButton
+      : document.getElementById("ytd-note-button");
+  if (!button) return;
+  if (!ytdNoteButton) ytdNoteButton = button;
+  button.style.opacity = "1";
+  button.style.pointerEvents = "auto";
+}
+
+function clearCoachNoteForce() {
+  if (!coachNoteForcedVisible) return;
+  coachNoteForcedVisible = false;
+  hideNoteButton();
+}
+
+function collectCoachTargets() {
+  const found = [];
+  for (const target of COACH_TARGETS) {
+    const element = target.getElement?.();
+    if (element?.isConnected) {
+      found.push({ ...target, element });
+    }
+  }
+  return found;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForCoachTargets({ attempts = 20, delayMs = 150 } = {}) {
+  for (let i = 0; i < attempts; i += 1) {
+    injectDigestButton();
+    tryInjectNoteButton();
+    const found = collectCoachTargets();
+    if (found.length > 0) return found;
+    await wait(delayMs);
+  }
+  return collectCoachTargets();
+}
+
+function applyCoachHighlight(element) {
+  if (!element || coachHighlightRestores.has(element)) return;
+
+  coachHighlightRestores.set(element, {
+    position: element.style.position,
+    zIndex: element.style.zIndex,
+    boxShadow: element.style.boxShadow,
+    outline: element.style.outline,
+    outlineOffset: element.style.outlineOffset,
+  });
+
+  const computedPosition =
+    element.style.position ||
+    (typeof window.getComputedStyle === "function"
+      ? window.getComputedStyle(element).position
+      : "static");
+  if (!computedPosition || computedPosition === "static") {
+    element.style.position = "relative";
+  }
+  element.style.zIndex = COACH_Z_TARGET;
+  element.style.outline = "3px solid #c8674f";
+  element.style.outlineOffset = "3px";
+  element.style.boxShadow =
+    "0 0 0 6px rgba(200, 103, 79, 0.35), 0 10px 28px rgba(200, 103, 79, 0.45)";
+}
+
+function restoreCoachHighlights() {
+  for (const [element, previous] of coachHighlightRestores.entries()) {
+    if (!element) continue;
+    element.style.position = previous.position || "";
+    element.style.zIndex = previous.zIndex || "";
+    element.style.boxShadow = previous.boxShadow || "";
+    element.style.outline = previous.outline || "";
+    element.style.outlineOffset = previous.outlineOffset || "";
+  }
+  coachHighlightRestores.clear();
+}
+
+function removeCoachMarks() {
+  restoreCoachHighlights();
+  clearCoachNoteForce();
+  for (const cleanup of coachLayoutCleanups) {
+    try {
+      cleanup();
+    } catch (_error) {
+      // Ignore cleanup failures while tearing down.
+    }
+  }
+  coachLayoutCleanups = [];
+  if (coachResizeHandler) {
+    window.removeEventListener("resize", coachResizeHandler);
+    window.removeEventListener("scroll", coachResizeHandler, true);
+    coachResizeHandler = null;
+  }
+  const existing = document.getElementById("ytd-coach-marks");
+  if (existing) existing.remove();
+  ytdCoachRoot = null;
+  coachMarksActive = false;
+}
+
+function getCoachViewportSize() {
+  return {
+    width: window.innerWidth || document.documentElement.clientWidth || 1280,
+    height: window.innerHeight || document.documentElement.clientHeight || 720,
+  };
+}
+
+/**
+ * Places a callout near a control and returns line endpoints from the control
+ * edge to the callout.
+ */
+function resolveCoachCalloutLayout(rect, placement, calloutWidth, calloutHeight) {
+  const gap = 18;
+  const viewport = getCoachViewportSize();
+  let left;
+  let top;
+  let fromX = rect.left + rect.width / 2;
+  let fromY = rect.top + rect.height / 2;
+  let toX;
+  let toY;
+
+  switch (placement) {
+    case "left":
+      left = rect.left - gap - calloutWidth;
+      top = rect.top + rect.height / 2 - calloutHeight / 2;
+      fromX = rect.left;
+      fromY = rect.top + rect.height / 2;
+      toX = left + calloutWidth;
+      toY = top + calloutHeight / 2;
+      break;
+    case "right":
+      left = rect.right + gap;
+      top = rect.top + rect.height / 2 - calloutHeight / 2;
+      fromX = rect.right;
+      fromY = rect.top + rect.height / 2;
+      toX = left;
+      toY = top + calloutHeight / 2;
+      break;
+    case "above":
+      left = rect.left + rect.width / 2 - calloutWidth / 2;
+      top = rect.top - gap - calloutHeight;
+      fromX = rect.left + rect.width / 2;
+      fromY = rect.top;
+      toX = left + calloutWidth / 2;
+      toY = top + calloutHeight;
+      break;
+    case "below":
+    default:
+      left = rect.left + rect.width / 2 - calloutWidth / 2;
+      top = rect.bottom + gap;
+      fromX = rect.left + rect.width / 2;
+      fromY = rect.bottom;
+      toX = left + calloutWidth / 2;
+      toY = top;
+      break;
+  }
+
+  left = Math.max(12, Math.min(left, viewport.width - calloutWidth - 12));
+  top = Math.max(12, Math.min(top, viewport.height - calloutHeight - 12));
+
+  // Recompute the callout-side endpoint after clamping so the line still meets
+  // the bubble instead of floating in empty space.
+  switch (placement) {
+    case "left":
+      toX = left + calloutWidth;
+      toY = top + calloutHeight / 2;
+      break;
+    case "right":
+      toX = left;
+      toY = top + calloutHeight / 2;
+      break;
+    case "above":
+      toX = left + calloutWidth / 2;
+      toY = top + calloutHeight;
+      break;
+    case "below":
+    default:
+      toX = left + calloutWidth / 2;
+      toY = top;
+      break;
+  }
+
+  return { left, top, fromX, fromY, toX, toY };
+}
+
+function styleCoachConnector(line, fromX, fromY, toX, toY) {
+  const length = Math.max(1, Math.hypot(toX - fromX, toY - fromY));
+  const angle = (Math.atan2(toY - fromY, toX - fromX) * 180) / Math.PI;
+  line.style.cssText = `
+    position: fixed;
+    left: ${fromX}px;
+    top: ${fromY - 1}px;
+    width: ${length}px;
+    height: 2px;
+    background: #c8674f;
+    transform-origin: 0 50%;
+    transform: rotate(${angle}deg);
+    z-index: ${COACH_Z_CARD};
+    pointer-events: none;
+    box-shadow: 0 0 0 1px rgba(200, 103, 79, 0.25);
+  `;
+}
+
+function styleCoachCallout(callout, left, top) {
+  callout.style.cssText = `
+    position: fixed;
+    left: ${left}px;
+    top: ${top}px;
+    z-index: ${COACH_Z_CARD};
+    max-width: min(240px, calc(100vw - 24px));
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #1f1f1f;
+    color: #f5f5f5;
+    border: 1px solid rgba(200, 103, 79, 0.55);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+    pointer-events: auto;
+  `;
+}
+
+function layoutCoachAnnotations(entries) {
+  for (const entry of entries) {
+    const rect =
+      typeof entry.element.getBoundingClientRect === "function"
+        ? entry.element.getBoundingClientRect()
+        : { left: 40, top: 40, right: 140, bottom: 76, width: 100, height: 36 };
+    if (!rect.width && !rect.height) continue;
+
+    const calloutWidth = Math.min(
+      240,
+      Math.max(160, entry.callout.offsetWidth || 200),
+    );
+    const calloutHeight = Math.max(44, entry.callout.offsetHeight || 48);
+    const layout = resolveCoachCalloutLayout(
+      rect,
+      entry.placement || "below",
+      calloutWidth,
+      calloutHeight,
+    );
+    styleCoachCallout(entry.callout, layout.left, layout.top);
+    styleCoachConnector(
+      entry.line,
+      layout.fromX,
+      layout.fromY,
+      layout.toX,
+      layout.toY,
+    );
+  }
+}
+
+/**
+ * Dim the page and draw a connector + explanation callout for each registered
+ * interactive control so first-time users can see what Digest / Note do.
+ */
+async function showCoachMarks() {
+  if (
+    !window.location.pathname.includes("/watch") ||
+    (await isCoachMarksDismissed())
+  ) {
+    removeCoachMarks();
+    return;
+  }
+
+  if (ytdCoachRoot?.isConnected || coachMarksActive) return;
+
+  const targets = await waitForCoachTargets();
+  if (
+    !window.location.pathname.includes("/watch") ||
+    (await isCoachMarksDismissed()) ||
+    targets.length === 0
+  ) {
+    return;
+  }
+
+  if (ytdCoachRoot?.isConnected || coachMarksActive) return;
+
+  removeCoachMarks();
+  coachMarksActive = true;
+
+  const language = await getUiLanguage();
+  const copy = coachCopy(language);
+
+  const root = document.createElement("div");
+  root.id = "ytd-coach-marks";
+  root.setAttribute("role", "dialog");
+  root.setAttribute("aria-label", copy.dialogLabel);
+  root.style.cssText = `
+    position: fixed;
+    inset: 0;
+    z-index: ${COACH_Z_OVERLAY};
+    pointer-events: none;
+    font-family: "Roboto", "Arial", sans-serif;
+  `;
+
+  const overlay = document.createElement("div");
+  overlay.className = "ytd-coach-overlay";
+  overlay.style.cssText = `
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    pointer-events: auto;
+    cursor: pointer;
+  `;
+
+  const dismissBar = document.createElement("div");
+  dismissBar.className = "ytd-coach-dismiss-bar";
+  dismissBar.style.cssText = `
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: ${COACH_Z_CARD};
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    pointer-events: auto;
+  `;
+  dismissBar.innerHTML = `
+    <div class="ytd-coach-dismiss-actions">
+      <button type="button" class="ytd-coach-got-it">${escapeHtmlForContent(copy.dismissLabel)}</button>
+      <button type="button" class="ytd-coach-dismiss" aria-label="${escapeHtmlForContent(copy.dismissAria)}">×</button>
+    </div>
+    <label class="ytd-coach-dont-show">
+      <input type="checkbox" class="ytd-coach-dont-show-input" checked />
+      <span>${escapeHtmlForContent(copy.dontShowAgain)}</span>
+    </label>
+  `;
+
+  const actions = dismissBar.querySelector(".ytd-coach-dismiss-actions");
+  actions.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  `;
+
+  const gotIt = dismissBar.querySelector(".ytd-coach-got-it");
+  gotIt.style.cssText = `
+    height: 34px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 999px;
+    background: #c8674f;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  `;
+
+  const dismissIcon = dismissBar.querySelector(".ytd-coach-dismiss");
+  dismissIcon.style.cssText = `
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 10px;
+    background: rgba(31, 31, 31, 0.92);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+  `;
+
+  const dontShowLabel = dismissBar.querySelector(".ytd-coach-dont-show");
+  dontShowLabel.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(31, 31, 31, 0.92);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+  `;
+
+  const dontShowInput = dismissBar.querySelector(".ytd-coach-dont-show-input");
+  dontShowInput.style.cssText = `
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    accent-color: #c8674f;
+    cursor: pointer;
+  `;
+
+  const onDismissTemporary = async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    await dismissCoachMarks({ permanent: false });
+  };
+
+  const onDismissFromGotIt = async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    await dismissCoachMarks({ permanent: Boolean(dontShowInput?.checked) });
+  };
+
+  overlay.addEventListener("click", onDismissTemporary);
+  dismissIcon.addEventListener("click", onDismissTemporary);
+  gotIt.addEventListener("click", onDismissFromGotIt);
+  dismissBar.addEventListener("click", (event) => event.stopPropagation());
+
+  const annotationEntries = [];
+  for (const target of targets) {
+    if (typeof target.ensureVisible === "function") {
+      target.ensureVisible();
+    }
+    applyCoachHighlight(target.element);
+
+    const line = document.createElement("div");
+    line.className = "ytd-coach-line";
+    line.dataset.targetId = target.id;
+
+    const callout = document.createElement("div");
+    callout.className = "ytd-coach-callout";
+    callout.dataset.targetId = target.id;
+    callout.textContent = target.label[language] || target.label.en;
+    callout.addEventListener("click", (event) => event.stopPropagation());
+
+    root.appendChild(line);
+    root.appendChild(callout);
+    annotationEntries.push({
+      element: target.element,
+      placement: target.placement || "below",
+      line,
+      callout,
+    });
+  }
+
+  root.appendChild(overlay);
+  root.appendChild(dismissBar);
+  document.documentElement.appendChild(root);
+  ytdCoachRoot = root;
+
+  const refreshLayout = () => layoutCoachAnnotations(annotationEntries);
+  refreshLayout();
+  // Second pass after the browser measures callout text width/height.
+  requestAnimationFrame(refreshLayout);
+
+  coachResizeHandler = refreshLayout;
+  window.addEventListener("resize", coachResizeHandler);
+  window.addEventListener("scroll", coachResizeHandler, true);
 }
 
 /**
@@ -90,7 +690,7 @@ function tryInjectNoteButton() {
 
     if (attempts >= maxAttempts) {
       debugLog(
-        "[YouTube Digest Content] Player container not found after retries, giving up",
+        "[Jeffrey Video Digest Content] Player container not found after retries, giving up",
       );
       if (ytdNoteButtonRetryTimer) {
         clearInterval(ytdNoteButtonRetryTimer);
@@ -122,12 +722,12 @@ if (document.readyState === "loading") {
  * When they send key moments, we highlight them on the progress bar.
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  debugLog("[YouTube Digest Content] Received message:", message.action, message);
+  debugLog("[Jeffrey Video Digest Content] Received message:", message.action, message);
 
   if (message.action === "getVideoInfo") {
     // Read video title and channel name from the page
     const info = extractVideoInfo();
-    debugLog("[YouTube Digest Content] Returning video info:", info);
+    debugLog("[Jeffrey Video Digest Content] Returning video info:", info);
     sendResponse(info);
     return false; // Synchronous response
   }
@@ -150,7 +750,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === "seekTo") {
     // Jump the video to a specific timestamp
-    debugLog("[YouTube Digest Content] Seeking to:", message.seconds);
+    debugLog("[Jeffrey Video Digest Content] Seeking to:", message.seconds);
     seekToTimestamp(message.seconds);
     sendResponse({ success: true });
     return false;
@@ -164,7 +764,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   // Unknown action - still send a response to prevent hanging
-  debugLog("[YouTube Digest Content] Unknown action:", message.action);
+  debugLog("[Jeffrey Video Digest Content] Unknown action:", message.action);
   sendResponse({ success: false, error: "Unknown action" });
   return false;
 });
@@ -177,7 +777,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  * Injects a "Digest" button into YouTube's action bar.
  * The button appears next to Share, Save, etc. below the video.
  *
- * When clicked, it opens the YouTube Digest side panel.
+ * When clicked, it opens the Jeffrey Video Digest side panel.
  */
 function isVisibleDigestHost(element) {
   if (!element || !element.isConnected) return false;
@@ -231,7 +831,7 @@ function createDigestButton() {
   const digestButton = document.createElement("button");
   digestButton.id = "ytd-digest-button";
   digestButton.type = "button";
-  digestButton.setAttribute("aria-label", "Open YouTube Digest");
+  digestButton.setAttribute("aria-label", "Open Jeffrey Video Digest");
   digestButton.innerHTML = `
     <span class="ytd-digest-icon" style="font-size: 11px;">▶</span>
     <span class="ytd-digest-label">Digest</span>
@@ -276,21 +876,13 @@ function createDigestButton() {
   });
 
   // Click handler — open the side panel
-  digestButton.addEventListener("click", async (e) => {
+  digestButton.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    debugLog("[YouTube Digest] Digest button clicked");
-
-    // Send message to background script to open side panel
-    try {
-      const result = await chrome.runtime.sendMessage({
-        action: "openSidePanel",
-      });
-      debugLog("[YouTube Digest] openSidePanel response:", result);
-    } catch (err) {
-      console.error("[YouTube Digest] Failed to open side panel:", err);
-    }
+    debugLog("[Jeffrey Video Digest] Digest button clicked");
+    openSidePanelFromUserGesture();
+    void dismissCoachMarks({ permanent: true });
   });
 
   ytdDigestButton = digestButton;
@@ -315,7 +907,7 @@ function injectDigestButton() {
 
   const actionsContainer = findDigestButtonHost();
   if (!actionsContainer) {
-    debugLog("[YouTube Digest Content] Visible actions container not found yet");
+    debugLog("[Jeffrey Video Digest Content] Visible actions container not found yet");
     return false;
   }
 
@@ -341,7 +933,7 @@ function injectDigestButton() {
     actionsContainer.insertBefore(digestButton, actionsContainer.firstChild);
   }
 
-  debugLog("[YouTube Digest Content] Digest button reconciled");
+  debugLog("[Jeffrey Video Digest Content] Digest button reconciled");
   return true;
 }
 
@@ -423,7 +1015,7 @@ function injectNoteButton() {
 
   if (!playerContainer) {
     debugLog(
-      "[YouTube Digest Content] Player container not found yet, will retry",
+      "[Jeffrey Video Digest Content] Player container not found yet, will retry",
     );
     return;
   }
@@ -436,7 +1028,7 @@ function injectNoteButton() {
     playerContainer.style.position = "relative";
   }
 
-  debugLog("[YouTube Digest Content] Injecting note button");
+  debugLog("[Jeffrey Video Digest Content] Injecting note button");
 
   // Create the note button — a soft rounded pill that floats over the player
   const noteButton = document.createElement("button");
@@ -511,12 +1103,13 @@ function injectNoteButton() {
   noteButton.addEventListener("click", async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    void dismissCoachMarks({ permanent: true });
     await saveCurrentNote();
   });
 
   playerContainer.appendChild(noteButton);
 
-  debugLog("[YouTube Digest Content] Note button injected");
+  debugLog("[Jeffrey Video Digest Content] Note button injected");
 }
 
 function showNoteButton() {
@@ -526,12 +1119,13 @@ function showNoteButton() {
 }
 
 function hideNoteButton() {
-  if (!ytdNoteButton) return;
+  if (!ytdNoteButton || coachNoteForcedVisible) return;
   ytdNoteButton.style.opacity = "0";
   ytdNoteButton.style.pointerEvents = "none";
 }
 
 function resetNoteButtonTimer() {
+  if (coachNoteForcedVisible) return;
   clearTimeout(ytdNoteButtonTimer);
   ytdNoteButtonTimer = setTimeout(() => {
     hideNoteButton();
@@ -572,11 +1166,11 @@ function handleNoteKeyboardShortcut(e) {
  * Captures the current timestamp and saves it as a note.
  */
 async function saveCurrentNote() {
-  debugLog("[YouTube Digest] Saving note");
+  debugLog("[Jeffrey Video Digest] Saving note");
 
   const video = document.querySelector("video.html5-main-video");
   if (!video) {
-    console.error("[YouTube Digest] No video element found");
+    console.error("[Jeffrey Video Digest] No video element found");
     return;
   }
 
@@ -615,14 +1209,14 @@ async function saveCurrentNote() {
         noteButton.innerHTML =
           '<span style="letter-spacing: 0.2px;">ERROR</span>';
       }
-      console.error("[YouTube Digest] Save note error:", result.error);
+      console.error("[Jeffrey Video Digest] Save note error:", result.error);
     }
   } catch (err) {
     if (noteButton) {
       noteButton.innerHTML =
         '<span style="letter-spacing: 0.2px;">ERROR</span>';
     }
-    console.error("[YouTube Digest] Save note exception:", err);
+    console.error("[Jeffrey Video Digest] Save note exception:", err);
   }
 
   setTimeout(() => {
@@ -772,11 +1366,11 @@ function highlightKeyMoments(moments, videoDuration) {
 function seekToTimestamp(seconds) {
   const video = document.querySelector("video.html5-main-video");
   if (!video) {
-    console.error("[YouTube Digest Content] No video element found for seek");
+    console.error("[Jeffrey Video Digest Content] No video element found for seek");
     return;
   }
 
-  debugLog("[YouTube Digest Content] Seeking to:", seconds);
+  debugLog("[Jeffrey Video Digest Content] Seeking to:", seconds);
   video.currentTime = seconds;
   // Also play the video if it's paused
   if (video.paused) {
@@ -834,10 +1428,12 @@ document.addEventListener("yt-navigate-finish", () => {
   // Remove any toasts
   const existingToast = document.getElementById("ytd-note-toast");
   if (existingToast) existingToast.remove();
+  removeCoachMarks();
 
   // Re-inject buttons for the new video (with a small delay for YouTube to render)
   setTimeout(() => {
     scheduleDigestButtonReconciliation(0);
     tryInjectNoteButton();
+    void showCoachMarks();
   }, 500);
 });

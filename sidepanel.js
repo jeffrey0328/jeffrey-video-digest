@@ -1,7 +1,7 @@
 /**
  * SIDE PANEL LOGIC
  *
- * Handles the UI for YouTube Digest: video detection, transcript analysis,
+ * Handles the UI for Jeffrey Video Digest: video detection, transcript analysis,
  * rendering results, and export features.
  */
 
@@ -10,6 +10,241 @@ const debugLog = (...args) => {
   if (DEBUG) console.log(...args);
 };
 
+const UI_COPY = {
+  en: {
+    languageGroupLabel: "Interface language",
+    languageSwitchLabel: "Use Chinese interface",
+    settings: "Settings",
+    settingsTitle: "Open Jeffrey Video Digest settings",
+    tabTranscript: "Transcript",
+    tabOverview: "Overview",
+    tabNotes: "Notes",
+    welcomeTitle: "Ready to Digest",
+    welcomeDesc:
+      "Navigate to a YouTube video and click the extension icon to get an AI-powered digest.",
+    loadingTranscript: "Fetching transcript",
+    loadingTranscriptSub: "Extracting captions from video...",
+    errorTitle: "Error",
+    errorGeneric: "Something went wrong.",
+    tryAgain: "Try Again",
+    openSettings: "Open Settings",
+    apiKeysMissing: "API Keys Missing",
+    apiKeyMissing: "API key missing",
+    addSupadataKey: "Add your Supadata API key in Jeffrey Video Digest Settings.",
+    addKeysPrefix: "Add your",
+    addKeysSuffix: "API key",
+    addKeysSuffixPlural: "API keys",
+    addKeysInSettings: "in Jeffrey Video Digest Settings.",
+    and: "and",
+    noTranscript: "No transcript found",
+    fullTranscript: "Full Transcript",
+    transcriptModeLabel: "Transcript language",
+    overviewModeLabel: "Overview language",
+    modeOriginal: "Original",
+    originalWithLang: ({ language }) => `Original (${language})`,
+    translating: "Translating",
+    copy: "Copy",
+    export: "Export",
+    chapters: "Chapters",
+    chaptersPlaceholder: "Chapters will appear here",
+    keyQuotes: "Key Quotes",
+    quotesPlaceholder: "Quotes will be extracted when you view this tab...",
+    analyzing: "Analyzing…",
+    extractingQuotes: "Extracting quotes…",
+    loadingChapters: "Loading chapters...",
+    loadingQuotes: "Loading quotes...",
+    analysisFailed: "Analysis failed",
+    unknownError: "Unknown error",
+    errorLabel: "Error",
+    play: "▶ Play",
+    savedNotes: "Saved Notes",
+    notesThisVideo: "This Video",
+    notesAll: "All Notes",
+    notesIntro:
+      'Move your mouse over the video and click the 📝 Note button to save timestamped notes, or press the "n" key while the video is focused.',
+    noNotesThisVideo:
+      "No notes for this video yet. Hover over the video and click 📝 Note to save.",
+    noNotesYet:
+      "No notes saved yet. Hover over a video and click 📝 Note to save.",
+    followPlayback: "Follow playback",
+    fromSubtitles: "From video subtitles",
+    saveQuoteTitle: "Save this quote as a note",
+    copyQuoteTitle: "Copy this quote",
+    note: "📝 Note",
+    copyQuote: "⧉ Copy",
+    copied: "✓ Copied",
+    copiedExclaim: "✓ Copied!",
+    saving: "Saving...",
+    saved: "✓ Saved",
+    deleteNote: "Delete note",
+    copyText: "⧉ Copy text",
+    copyTimestamp: "🔗 Copy timestamp",
+    explain: "💡 Explain",
+    explainTitle: "Explain",
+    close: "Close",
+    explaining: "Thinking…",
+    explainFailed: "Failed to get explanation",
+    waitingTranslation: "Waiting for translation…",
+    translatingOverview: "Translating overview…",
+    translationUnavailable: "Translation unavailable.",
+    translationFailed: "Translation failed.",
+    retrying: "Retrying…",
+    retry: "Retry",
+    translationTimeout:
+      "Translation request timed out after 130 seconds. Please Retry.",
+    providerLabel: "AI provider",
+  },
+  "zh-CN": {
+    languageGroupLabel: "界面语言",
+    languageSwitchLabel: "使用中文界面",
+    settings: "设置",
+    settingsTitle: "打开 Jeffrey Video Digest 设置",
+    tabTranscript: "字幕",
+    tabOverview: "概览",
+    tabNotes: "笔记",
+    welcomeTitle: "准备就绪",
+    welcomeDesc: "打开 YouTube 视频，点击扩展图标即可生成 AI 摘要。",
+    loadingTranscript: "正在获取字幕",
+    loadingTranscriptSub: "正在提取视频字幕…",
+    errorTitle: "出错了",
+    errorGeneric: "出了点问题。",
+    tryAgain: "重试",
+    openSettings: "打开设置",
+    apiKeysMissing: "缺少 API 密钥",
+    apiKeyMissing: "缺少 API 密钥",
+    addSupadataKey: "请在 Jeffrey Video Digest 设置中添加 Supadata API 密钥。",
+    addKeysPrefix: "请在 Jeffrey Video Digest 设置中添加",
+    addKeysSuffix: "API 密钥",
+    addKeysSuffixPlural: "API 密钥",
+    addKeysInSettings: "。",
+    and: "和",
+    noTranscript: "未找到字幕",
+    fullTranscript: "完整字幕",
+    transcriptModeLabel: "字幕语言",
+    overviewModeLabel: "概览语言",
+    modeOriginal: "原文",
+    originalWithLang: ({ language }) => `原文（${language}）`,
+    translating: "翻译中",
+    copy: "复制",
+    export: "导出",
+    chapters: "章节",
+    chaptersPlaceholder: "章节将显示在这里",
+    keyQuotes: "金句",
+    quotesPlaceholder: "打开此标签页后会提取金句…",
+    analyzing: "正在分析…",
+    extractingQuotes: "正在提取金句…",
+    loadingChapters: "正在加载章节…",
+    loadingQuotes: "正在加载金句…",
+    analysisFailed: "分析失败",
+    unknownError: "未知错误",
+    errorLabel: "错误",
+    play: "▶ 播放",
+    savedNotes: "已存笔记",
+    notesThisVideo: "本视频",
+    notesAll: "全部笔记",
+    notesIntro:
+      "把鼠标移到视频上，点击 📝 Note 按钮即可保存带时间戳的笔记；视频获得焦点时也可按 n 键。",
+    noNotesThisVideo: "此视频还没有笔记。把鼠标移到视频上，点击 📝 Note 即可保存。",
+    noNotesYet: "还没有笔记。把鼠标移到视频上，点击 📝 Note 即可保存。",
+    followPlayback: "跟随播放",
+    fromSubtitles: "来自视频字幕",
+    saveQuoteTitle: "将这句金句存为笔记",
+    copyQuoteTitle: "复制这句金句",
+    note: "📝 笔记",
+    copyQuote: "⧉ 复制",
+    copied: "✓ 已复制",
+    copiedExclaim: "✓ 已复制！",
+    saving: "保存中…",
+    saved: "✓ 已保存",
+    deleteNote: "删除笔记",
+    copyText: "⧉ 复制文本",
+    copyTimestamp: "🔗 复制时间戳",
+    explain: "💡 讲解",
+    explainTitle: "讲解",
+    close: "关闭",
+    explaining: "思考中…",
+    explainFailed: "无法获取讲解",
+    waitingTranslation: "等待翻译…",
+    translatingOverview: "正在翻译概览…",
+    translationUnavailable: "暂无翻译。",
+    translationFailed: "翻译失败。",
+    retrying: "重试中…",
+    retry: "重试",
+    translationTimeout: "翻译请求在 130 秒后超时。请重试。",
+    providerLabel: "AI 服务",
+  },
+};
+
+let uiLanguage = "en";
+
+function t(key, params = {}) {
+  const value =
+    UI_COPY[uiLanguage]?.[key] ?? UI_COPY.en[key] ?? "";
+  return typeof value === "function" ? value(params) : value;
+}
+
+function translateUi(language, key, params = {}) {
+  const normalized = YTD_I18N.normalizeLanguage(language);
+  const value = UI_COPY[normalized]?.[key] ?? UI_COPY.en[key] ?? "";
+  return typeof value === "function" ? value(params) : value;
+}
+
+function applySidepanelLanguage(language) {
+  uiLanguage = YTD_I18N.normalizeLanguage(language);
+  document.documentElement.lang = uiLanguage;
+  YTD_I18N.applyStaticI18n(document, uiLanguage, translateUi);
+  YTD_I18N.updateLanguageSliderState(document, uiLanguage);
+  refreshLanguageSensitiveUi();
+}
+
+function refreshLanguageSensitiveUi() {
+  const errorState = document.getElementById("errorState");
+  if (errorState && errorState.style.display !== "none") {
+    const btn = document.getElementById("errorBtn");
+    if (errorAction) {
+      btn.textContent = t("openSettings");
+    } else if (btn) {
+      btn.textContent = t("tryAgain");
+    }
+  }
+
+  const notesIntro = document.getElementById("notesIntro");
+  const notesList = document.getElementById("notesList");
+  if (notesIntro && notesList && !notesList.children.length) {
+    const filterAll = document
+      .getElementById("notesFilterAll")
+      ?.classList.contains("active");
+    notesIntro.textContent = filterAll ? t("noNotesYet") : t("noNotesThisVideo");
+  } else if (notesIntro && notesList?.children.length) {
+    notesIntro.textContent = t("notesIntro");
+  }
+}
+
+async function setUiLanguage(language) {
+  applySidepanelLanguage(language);
+  const storage = YTD_I18N.createStorageAdapter(chrome);
+  await YTD_I18N.persistPreferredLanguage(storage, language);
+}
+
+async function initUiLanguage() {
+  const storage = YTD_I18N.createStorageAdapter(chrome);
+  try {
+    applySidepanelLanguage(await YTD_I18N.readPreferredLanguage(storage));
+  } catch (_error) {
+    applySidepanelLanguage("en");
+  }
+
+  YTD_I18N.bindLanguageSlider(document, {
+    getLanguage: () => uiLanguage,
+    setLanguage: setUiLanguage,
+  });
+
+  YTD_I18N.watchLanguagePreference(chrome, (language) => {
+    if (language === uiLanguage) return;
+    applySidepanelLanguage(language);
+  });
+}
+
 // ============================================================
 // STATE
 // ============================================================
@@ -17,6 +252,10 @@ const debugLog = (...args) => {
 let currentVideoId = null;
 let currentVideoUrl = null;
 let currentAnalysis = null;
+let currentAnalysisZh = null;
+let currentOverviewMode = "original";
+let overviewTranslationGeneration = 0;
+let isOverviewTranslating = false;
 let currentTranscript = null;
 let currentTranscriptText = null; // Plain text (for display/export)
 let currentTranscriptTimestamped = null; // With timestamps for AI analysis
@@ -59,9 +298,7 @@ function sendTranslationMessage(message) {
     timeoutId = setTimeout(() => {
       finish(
         reject,
-        new Error(
-          "Translation request timed out after 130 seconds. Please Retry.",
-        ),
+        new Error(t("translationTimeout")),
       );
     }, TRANSLATION_MESSAGE_TIMEOUT_MS);
 
@@ -230,6 +467,16 @@ function groupTranscriptEntries(entries, limits = TRANSCRIPT_SEGMENT_LIMITS) {
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    await initUiLanguage();
+  } catch (error) {
+    console.warn("[Jeffrey Video Digest] UI language init failed:", error);
+    try {
+      applySidepanelLanguage("en");
+    } catch (_error) {
+      // Continue without localization rather than leaving the panel blank.
+    }
+  }
   setupEventListeners();
   await evictOldCacheEntries(20);
 
@@ -237,8 +484,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     action: "checkConfig",
   });
 
-  if (!configStatus.hasSupadataKey || !configStatus.hasAiKey) {
-    showConfigError(configStatus);
+  if (!configStatus?.hasSupadataKey || !configStatus?.hasAiKey) {
+    showConfigError(configStatus || {});
     return;
   }
 
@@ -315,13 +562,26 @@ function panelIsShowingResults() {
  * refresh the digest when the video changed.
  */
 function handleFrontTabUrl(url) {
-  if (!(url || "").startsWith("https://www.youtube.com")) {
+  const normalized = String(url || "").trim();
+  // Incomplete or browser-internal URLs are not reliable close signals.
+  // Closing here made Digest-button opens look like "no reaction".
+  if (
+    !normalized ||
+    normalized.startsWith("chrome://") ||
+    normalized.startsWith("chrome-extension://") ||
+    normalized.startsWith("about:") ||
+    normalized.startsWith("edge://")
+  ) {
+    return;
+  }
+
+  if (!normalized.startsWith("https://www.youtube.com")) {
     // Panel is a YouTube-only tool — remove itself from non-YouTube tabs.
     window.close();
     return;
   }
 
-  const newVideoId = extractVideoId(url);
+  const newVideoId = extractVideoId(normalized);
   // Refresh when the video changed, or when we're not currently showing
   // results (e.g. user went home, then clicked back into the same video).
   if (newVideoId !== currentVideoId || !panelIsShowingResults()) {
@@ -332,14 +592,14 @@ function handleFrontTabUrl(url) {
 // Fires when a tab's URL changes — including YouTube's no-reload navigation.
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (!changeInfo.url || !tab.active) return;
-  if (panelWindowId !== null && tab.windowId !== panelWindowId) return;
+  if (panelWindowId === null || tab.windowId !== panelWindowId) return;
   handleFrontTabUrl(changeInfo.url);
 });
 
 // Fires when a different tab comes to the front — switching tabs, or a new
 // tab being opened (including ones opened by clicking links in other apps).
 chrome.tabs.onActivated.addListener(async ({ tabId, windowId }) => {
-  if (panelWindowId !== null && windowId !== panelWindowId) return;
+  if (panelWindowId === null || windowId !== panelWindowId) return;
   try {
     const tab = await chrome.tabs.get(tabId);
     // Brand-new tabs may not have committed their URL yet — fall back to
@@ -351,6 +611,16 @@ chrome.tabs.onActivated.addListener(async ({ tabId, windowId }) => {
 });
 
 function setupEventListeners() {
+  // Outer content must never scroll on the Transcript tab — only #transcriptList.
+  const contentArea = document.getElementById("contentArea");
+  contentArea?.addEventListener(
+    "scroll",
+    () => {
+      if (contentArea.scrollTop) contentArea.scrollTop = 0;
+    },
+    { passive: true },
+  );
+
   // Tab switching
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => switchTab(tab.dataset.tab));
@@ -378,9 +648,16 @@ function setupEventListeners() {
   document
     .getElementById("exportTranscriptBtn")
     ?.addEventListener("click", exportTranscript);
-  document.querySelectorAll(".transcript-mode-btn").forEach((button) => {
+  document
+    .querySelectorAll("#transcriptModeControl .transcript-mode-btn")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        handleTranscriptModeChange(button.dataset.transcriptMode);
+      });
+    });
+  document.querySelectorAll(".overview-mode-btn").forEach((button) => {
     button.addEventListener("click", () => {
-      handleTranscriptModeChange(button.dataset.transcriptMode);
+      handleOverviewModeChange(button.dataset.overviewMode);
     });
   });
 
@@ -452,7 +729,7 @@ async function checkCurrentTab() {
       if (tabs[0]) tab = tabs[0];
     }
 
-    debugLog("[YouTube Digest Panel] Found tab:", tab?.id, tab?.url);
+    debugLog("[Jeffrey Video Digest Panel] Found tab:", tab?.id, tab?.url);
 
     if (!tab?.url) {
       showState("welcome");
@@ -473,7 +750,7 @@ async function checkCurrentTab() {
           action: "relayToContent",
           payload: { action: "getVideoInfo" },
         });
-        debugLog("[YouTube Digest Panel] getVideoInfo result:", result);
+        debugLog("[Jeffrey Video Digest Panel] getVideoInfo result:", result);
         if (result.success && result.response) {
           currentVideoTitle = result.response.title || "";
           currentChannelName = result.response.channelName || "";
@@ -481,7 +758,7 @@ async function checkCurrentTab() {
           currentVideoDuration = result.response.duration || 0;
         }
       } catch (e) {
-        console.error("[YouTube Digest Panel] getVideoInfo error:", e);
+        console.error("[Jeffrey Video Digest Panel] getVideoInfo error:", e);
         currentVideoTitle = "";
         currentChannelName = "";
         currentVideoDescription = "";
@@ -537,6 +814,9 @@ async function startDigest(videoId, videoUrl) {
   // Every video change invalidates observer work and in-flight translations.
   if (videoId !== currentVideoId) {
     translationGeneration += 1;
+    overviewTranslationGeneration += 1;
+    isOverviewTranslating = false;
+    setOverviewTranslatingSpinner(false);
     if (transcriptScrollObserver) transcriptScrollObserver.disconnect();
     transcriptScrollObserver = null;
   }
@@ -548,6 +828,7 @@ async function startDigest(videoId, videoUrl) {
     currentVideoId = videoId;
     currentVideoUrl = videoUrl;
     currentAnalysis = cached.analysis || null;
+    currentAnalysisZh = cached.analysisZh || null;
     currentTranscript = cached.transcript;
     currentTranscriptText = cached.transcriptText;
     currentTranscriptTimestamped = cached.transcriptTimestamped;
@@ -573,8 +854,11 @@ async function startDigest(videoId, videoUrl) {
 
     // Render analysis if we have it cached
     if (currentAnalysis) {
-      renderAnalysisResults(currentAnalysis);
+      renderActiveOverview();
       highlightMomentsOnPage(currentAnalysis.keyMoments);
+      if (currentOverviewMode === "zh" && !currentAnalysisZh) {
+        void translateOverviewAnalysis();
+      }
     }
 
     showState("results");
@@ -592,6 +876,10 @@ async function startDigest(videoId, videoUrl) {
   currentVideoId = videoId;
   currentVideoUrl = videoUrl;
   currentAnalysis = null;
+  currentAnalysisZh = null;
+  overviewTranslationGeneration += 1;
+  isOverviewTranslating = false;
+  setOverviewTranslatingSpinner(false);
   currentTranscript = null;
   currentTranscriptText = null;
   currentTranscriptTimestamped = null;
@@ -606,7 +894,7 @@ async function startDigest(videoId, videoUrl) {
   }
 
   showState("loading");
-  updateLoading("Fetching transcript", "");
+  updateLoading(t("loadingTranscript"), "");
 
   const transcriptResult = await chrome.runtime.sendMessage({
     action: "fetchTranscript",
@@ -615,15 +903,12 @@ async function startDigest(videoId, videoUrl) {
 
   if (!transcriptResult.success) {
     if (transcriptResult.error === "NO_SUPADATA_KEY") {
-      showError(
-        "API key missing",
-        "Add your Supadata API key in YouTube Digest Settings.",
-      );
+      showError(t("apiKeyMissing"), t("addSupadataKey"));
       return;
     }
     showError(
-      "No transcript found",
-      transcriptResult.message || transcriptResult.error,
+      t("noTranscript"),
+      transcriptResult.message || transcriptResult.error || t("errorGeneric"),
     );
     return;
   }
@@ -677,7 +962,7 @@ function renderAnalysisResults(analysis) {
     `;
     li.addEventListener("click", () => {
       debugLog(
-        "[YouTube Digest Panel] Chapter clicked:",
+        "[Jeffrey Video Digest Panel] Chapter clicked:",
         chapter.timestamp,
         chapter.timestampSeconds,
       );
@@ -701,14 +986,14 @@ function renderAnalysisResults(analysis) {
       <div class="quote-meta">
         <span class="quote-timestamp">${escapeHtml(quote.timestamp)}</span>
         <div class="quote-actions">
-          <button class="quote-save-note-btn" title="Save this quote as a note">📝 Note</button>
-          <button class="quote-copy-btn" title="Copy this quote">⧉ Copy</button>
+          <button class="quote-save-note-btn" title="${escapeHtml(t("saveQuoteTitle"))}">${t("note")}</button>
+          <button class="quote-copy-btn" title="${escapeHtml(t("copyQuoteTitle"))}">${t("copyQuote")}</button>
         </div>
       </div>
     `;
     div.addEventListener("click", () => {
       debugLog(
-        "[YouTube Digest Panel] Quote clicked:",
+        "[Jeffrey Video Digest Panel] Quote clicked:",
         quote.timestamp,
         quote.timestampSeconds,
       );
@@ -720,9 +1005,9 @@ function renderAnalysisResults(analysis) {
       e.stopPropagation();
       try {
         await navigator.clipboard.writeText(quote.quote);
-        quoteCopyBtn.textContent = "✓ Copied";
+        quoteCopyBtn.textContent = t("copied");
         setTimeout(() => {
-          quoteCopyBtn.textContent = "⧉ Copy";
+          quoteCopyBtn.textContent = t("copyQuote");
         }, 1500);
       } catch (err) {
         console.error("Copy failed:", err);
@@ -739,6 +1024,175 @@ function renderAnalysisResults(analysis) {
   });
 }
 
+function setOverviewModeButtons(mode) {
+  document.querySelectorAll(".overview-mode-btn").forEach((button) => {
+    const active = button.dataset.overviewMode === mode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
+function setOverviewTranslatingSpinner(show) {
+  const spinner = document.getElementById("overviewLangSpinner");
+  if (!spinner) return;
+  spinner.classList.toggle("visible", Boolean(show));
+}
+
+function getActiveOverviewAnalysis() {
+  if (currentOverviewMode === "zh" && currentAnalysisZh) {
+    return currentAnalysisZh;
+  }
+  return currentAnalysis;
+}
+
+function renderActiveOverview() {
+  setOverviewModeButtons(currentOverviewMode);
+  const analysis = getActiveOverviewAnalysis();
+  if (!analysis) return;
+  renderAnalysisResults(analysis);
+}
+
+async function handleOverviewModeChange(mode) {
+  if (!["original", "zh"].includes(mode)) return;
+  if (mode === currentOverviewMode) return;
+
+  currentOverviewMode = mode;
+  setOverviewModeButtons(mode);
+
+  if (!currentAnalysis) return;
+
+  if (mode === "original") {
+    overviewTranslationGeneration += 1;
+    isOverviewTranslating = false;
+    setOverviewTranslatingSpinner(false);
+    renderAnalysisResults(currentAnalysis);
+    return;
+  }
+
+  await translateOverviewAnalysis();
+}
+
+/**
+ * Flattens overview fields into stable translation segments (max 4 per request).
+ */
+function flattenOverviewTranslationSegments(analysis) {
+  const segments = [];
+  (analysis.chapters || []).forEach((chapter, index) => {
+    const title = String(chapter?.title || "").trim();
+    const summary = String(chapter?.summary || "").trim();
+    if (title) segments.push({ id: `ch${index}t`, text: title });
+    if (summary) segments.push({ id: `ch${index}s`, text: summary });
+  });
+  (analysis.keyQuotes || []).forEach((quote, index) => {
+    const text = String(quote?.quote || "").trim();
+    if (text) segments.push({ id: `q${index}`, text });
+  });
+  return segments;
+}
+
+function applyOverviewTranslations(analysis, translatedById) {
+  return {
+    ...analysis,
+    chapters: (analysis.chapters || []).map((chapter, index) => ({
+      ...chapter,
+      title: translatedById.get(`ch${index}t`) || chapter.title,
+      summary:
+        translatedById.has(`ch${index}s`)
+          ? translatedById.get(`ch${index}s`)
+          : chapter.summary,
+    })),
+    keyQuotes: (analysis.keyQuotes || []).map((quote, index) => ({
+      ...quote,
+      quote: translatedById.get(`q${index}`) || quote.quote,
+    })),
+  };
+}
+
+async function translateOverviewBatch(segments) {
+  const result = await chrome.runtime.sendMessage({
+    action: "translateContent",
+    content: { segments },
+    contentType: "transcriptBatch",
+    targetLanguage: "zh",
+    videoTitle: currentVideoTitle,
+  });
+  if (!result?.success) {
+    throw new Error(result?.error || t("translationFailed"));
+  }
+  const translatedById = new Map();
+  for (const segment of result.translatedContent?.segments || []) {
+    if (segment?.id && segment?.text) {
+      translatedById.set(segment.id, segment.text);
+    }
+  }
+  return translatedById;
+}
+
+async function translateOverviewAnalysis() {
+  if (!currentAnalysis) return;
+  if (currentAnalysisZh) {
+    renderAnalysisResults(currentAnalysisZh);
+    return;
+  }
+
+  const generation = ++overviewTranslationGeneration;
+  isOverviewTranslating = true;
+  setOverviewTranslatingSpinner(true);
+
+  const chapterList = document.getElementById("chapterList");
+  const quotesList = document.getElementById("quotesList");
+  if (chapterList) {
+    chapterList.innerHTML = `<li class="chapter-item" style="color: var(--text-muted); border: none;">${escapeHtml(t("translatingOverview"))}</li>`;
+  }
+  if (quotesList) {
+    quotesList.innerHTML = `<div class="quote-item" style="color: var(--text-muted); border-left-color: var(--border);">${escapeHtml(t("translatingOverview"))}</div>`;
+  }
+
+  try {
+    const sourceSegments = flattenOverviewTranslationSegments(currentAnalysis);
+    const translatedById = new Map();
+
+    for (let i = 0; i < sourceSegments.length; i += 4) {
+      if (generation !== overviewTranslationGeneration) return;
+      const batch = sourceSegments.slice(i, i + 4);
+      const batchTranslations = await translateOverviewBatch(batch);
+      for (const [id, text] of batchTranslations.entries()) {
+        translatedById.set(id, text);
+      }
+    }
+
+    if (generation !== overviewTranslationGeneration) return;
+
+    currentAnalysisZh = applyOverviewTranslations(
+      currentAnalysis,
+      translatedById,
+    );
+    await updateCache();
+
+    if (currentOverviewMode === "zh") {
+      renderAnalysisResults(currentAnalysisZh);
+    }
+  } catch (error) {
+    if (generation !== overviewTranslationGeneration) return;
+    console.error("[Jeffrey Video Digest Panel] Overview translation error:", error);
+    if (chapterList) {
+      chapterList.innerHTML = `<li class="chapter-item" style="color: var(--accent); border: none;">${escapeHtml(t("translationFailed"))} <button class="translation-retry-btn" type="button" id="overviewTranslationRetry">${escapeHtml(t("retry"))}</button></li>`;
+      document
+        .getElementById("overviewTranslationRetry")
+        ?.addEventListener("click", () => {
+          currentAnalysisZh = null;
+          void translateOverviewAnalysis();
+        });
+    }
+    if (quotesList) quotesList.innerHTML = "";
+  } finally {
+    if (generation === overviewTranslationGeneration) {
+      isOverviewTranslating = false;
+      setOverviewTranslatingSpinner(false);
+    }
+  }
+}
+
 /**
  * Saves a key quote as a timestamped note.
  */
@@ -746,7 +1200,7 @@ async function saveQuoteAsNote(quote, btn) {
   if (!currentVideoId) return;
 
   const originalText = btn.textContent;
-  btn.textContent = "Saving...";
+  btn.textContent = t("saving");
   btn.disabled = true;
 
   try {
@@ -759,7 +1213,7 @@ async function saveQuoteAsNote(quote, btn) {
     });
 
     if (result.success) {
-      btn.textContent = "✓ Saved";
+      btn.textContent = t("saved");
       setTimeout(() => {
         btn.textContent = originalText;
         btn.disabled = false;
@@ -767,16 +1221,16 @@ async function saveQuoteAsNote(quote, btn) {
       // Refresh notes list if on Notes tab
       loadNotes(currentVideoId);
     } else {
-      console.error("[YouTube Digest] Save quote as note failed:", result.error);
-      btn.textContent = "Error";
+      console.error("[Jeffrey Video Digest] Save quote as note failed:", result.error);
+      btn.textContent = t("errorLabel");
       setTimeout(() => {
         btn.textContent = originalText;
         btn.disabled = false;
       }, 1500);
     }
   } catch (error) {
-    console.error("[YouTube Digest] Save quote as note error:", error);
-    btn.textContent = "Error";
+    console.error("[Jeffrey Video Digest] Save quote as note error:", error);
+    btn.textContent = t("errorLabel");
     setTimeout(() => {
       btn.textContent = originalText;
       btn.disabled = false;
@@ -824,6 +1278,18 @@ function seekFromTranscriptEntryClick(event, seconds) {
   seekTo(seconds);
 }
 
+function mountTranscriptSourceBadge(badge) {
+  const host = document.getElementById("transcriptSourceHost");
+  const transcriptList = document.getElementById("transcriptList");
+  if (host) {
+    host.replaceChildren(badge);
+    return;
+  }
+  if (transcriptList?.parentElement) {
+    transcriptList.parentElement.insertBefore(badge, transcriptList);
+  }
+}
+
 function renderTranscript() {
   if (!currentTranscript) return;
 
@@ -839,8 +1305,8 @@ function renderTranscript() {
   const badge = document.createElement("div");
   badge.id = "transcriptSourceBadge";
   badge.className = "transcript-source-badge";
-  badge.innerHTML = `<span class="source-dot source-dot--subs"></span> From video subtitles · ${escapeHtml(getOriginalTranscriptLabel())}`;
-  transcriptList.parentElement.insertBefore(badge, transcriptList);
+  badge.innerHTML = `<span class="source-dot source-dot--subs"></span> ${escapeHtml(t("fromSubtitles"))} · ${escapeHtml(getOriginalTranscriptLabel())}`;
+  mountTranscriptSourceBadge(badge);
 
   // Group entries using smart sentence-boundary + time-guardrail logic
   const grouped = groupTranscriptEntries(currentTranscript);
@@ -892,7 +1358,7 @@ function exportTranscript() {
 
   exportText += `TRANSCRIPT:\n\n${transcriptContent}\n`;
   exportText += `\n${"—".repeat(60)}\n`;
-  exportText += `Exported by YouTube Digest\n`;
+  exportText += `Exported by Jeffrey Video Digest\n`;
 
   const filename = `${sanitizeFilename(currentVideoTitle)}-transcript.txt`;
   downloadTextFile(exportText, filename);
@@ -912,7 +1378,7 @@ function showState(state) {
   const uploadEl = document.getElementById("uploadState");
   if (uploadEl) uploadEl.style.display = "none"; // Upload state removed — always hidden
   document.getElementById("resultsState").style.display =
-    state === "results" ? "block" : "none";
+    state === "results" ? "flex" : "none";
 
   // The tab bar only belongs on the results view. We toggle it HERE, in one
   // place, so it tracks the view automatically. Previously each caller had to
@@ -921,9 +1387,28 @@ function showState(state) {
   document.getElementById("tabsNav").style.display =
     state === "results" ? "flex" : "none";
 
+  updateTranscriptToolbarVisibility();
+
   if (state !== "results") {
     stopPlaybackTracking();
   }
+}
+
+/**
+ * Transcript controls live outside #contentArea. Show them only while the
+ * results view is on the Transcript tab.
+ */
+function updateTranscriptToolbarVisibility() {
+  const toolbar = document.getElementById("transcriptToolbar");
+  if (!toolbar) return;
+
+  const resultsVisible =
+    document.getElementById("resultsState")?.style.display === "flex";
+  const transcriptActive = document
+    .querySelector('.tab-panel[data-panel="transcript"]')
+    ?.classList.contains("active");
+
+  toolbar.style.display = resultsVisible && transcriptActive ? "block" : "none";
 }
 
 function updateLoading(title, subtitle) {
@@ -936,19 +1421,26 @@ function showError(title, message) {
   showState("error");
   document.getElementById("errorTitle").textContent = title;
   document.getElementById("errorMessage").textContent = message;
-  document.getElementById("errorBtn").textContent = "Try Again";
+  document.getElementById("errorBtn").textContent = t("tryAgain");
 }
 
 function showConfigError(configStatus) {
   const missingKeys = [];
   if (!configStatus.hasSupadataKey) missingKeys.push("Supadata");
-  if (!configStatus.hasAiKey) missingKeys.push("AI provider");
+  if (!configStatus.hasAiKey) missingKeys.push(t("providerLabel"));
+
+  const joined = missingKeys.join(` ${t("and")} `);
+  const keyWord =
+    missingKeys.length === 1 ? t("addKeysSuffix") : t("addKeysSuffixPlural");
 
   showState("error");
-  document.getElementById("errorTitle").textContent = "API Keys Missing";
+  document.getElementById("errorTitle").textContent = t("apiKeysMissing");
   document.getElementById("errorMessage").textContent =
-    `Add your ${missingKeys.join(" and ")} API key${missingKeys.length === 1 ? "" : "s"} in YouTube Digest Settings.`;
-  document.getElementById("errorBtn").textContent = "Open Settings";
+    `${t("addKeysPrefix")} ${joined} ${keyWord} ${t("addKeysInSettings")}`.replace(
+      /\s+/g,
+      " ",
+    ).trim();
+  document.getElementById("errorBtn").textContent = t("openSettings");
   errorAction = () => chrome.runtime.sendMessage({ action: "openOptions" });
 }
 
@@ -965,6 +1457,8 @@ function switchTab(tabName) {
     panel.classList.toggle("active", panel.dataset.panel === tabName);
   });
 
+  updateTranscriptToolbarVisibility();
+
   // Start/stop playback tracking based on which tab is active
   if (tabName === "transcript") {
     startPlaybackTracking();
@@ -973,8 +1467,12 @@ function switchTab(tabName) {
   }
 
   // Lazy-load LLM analysis when user switches to Overview tab
-  if (tabName === "overview" && !currentAnalysis && !isAnalysisLoading) {
-    triggerAnalysis();
+  if (tabName === "overview") {
+    if (!currentAnalysis && !isAnalysisLoading) {
+      triggerAnalysis();
+    } else if (currentAnalysis && currentOverviewMode === "zh") {
+      void translateOverviewAnalysis();
+    }
   }
 }
 
@@ -994,10 +1492,10 @@ async function triggerAnalysis() {
 
   if (chapterList)
     chapterList.innerHTML =
-      '<li class="chapter-item" style="color: var(--text-muted); border: none;">Loading chapters...</li>';
+      `<li class="chapter-item" style="color: var(--text-muted); border: none;">${escapeHtml(t("loadingChapters"))}</li>`;
   if (quotesList)
     quotesList.innerHTML =
-      '<div class="quote-item" style="color: var(--text-muted); border-left-color: var(--border);">Loading quotes...</div>';
+      `<div class="quote-item" style="color: var(--text-muted); border-left-color: var(--border);">${escapeHtml(t("loadingQuotes"))}</div>`;
 
   try {
     const analysisResult = await chrome.runtime.sendMessage({
@@ -1011,21 +1509,26 @@ async function triggerAnalysis() {
 
     if (!analysisResult.success) {
       if (chapterList)
-        chapterList.innerHTML = `<li class="chapter-item" style="color: var(--accent); border: none;">Analysis failed: ${escapeHtml(analysisResult.error || "Unknown error")}</li>`;
+        chapterList.innerHTML = `<li class="chapter-item" style="color: var(--accent); border: none;">${escapeHtml(t("analysisFailed"))}: ${escapeHtml(analysisResult.error || t("unknownError"))}</li>`;
       isAnalysisLoading = false;
       return;
     }
 
     currentAnalysis = analysisResult.analysis;
-    renderAnalysisResults(currentAnalysis);
+    currentAnalysisZh = null;
+    if (currentOverviewMode === "zh") {
+      await translateOverviewAnalysis();
+    } else {
+      renderAnalysisResults(currentAnalysis);
+    }
     highlightMomentsOnPage(currentAnalysis.keyMoments);
 
     // Save to cache now that we have analysis
     await saveToCache(currentVideoId);
   } catch (error) {
-    console.error("[YouTube Digest Panel] Analysis error:", error);
+    console.error("[Jeffrey Video Digest Panel] Analysis error:", error);
     if (chapterList)
-      chapterList.innerHTML = `<li class="chapter-item" style="color: var(--accent); border: none;">Error: ${escapeHtml(error.message)}</li>`;
+      chapterList.innerHTML = `<li class="chapter-item" style="color: var(--accent); border: none;">${escapeHtml(t("errorLabel"))}: ${escapeHtml(error.message)}</li>`;
   }
 
   isAnalysisLoading = false;
@@ -1036,9 +1539,9 @@ async function triggerAnalysis() {
 // ============================================================
 
 async function seekTo(seconds) {
-  debugLog("[YouTube Digest Panel] seekTo called with:", seconds);
+  debugLog("[Jeffrey Video Digest Panel] seekTo called with:", seconds);
   if (seconds === undefined || seconds === null) {
-    debugLog("[YouTube Digest Panel] seekTo aborted - no seconds value");
+    debugLog("[Jeffrey Video Digest Panel] seekTo aborted - no seconds value");
     return;
   }
 
@@ -1052,11 +1555,11 @@ async function seekTo(seconds) {
     if (youtubeTabId) {
       try {
         await chrome.tabs.sendMessage(youtubeTabId, payload);
-        debugLog("[YouTube Digest Panel] seekTo direct success");
+        debugLog("[Jeffrey Video Digest Panel] seekTo direct success");
         return;
       } catch (directErr) {
         debugLog(
-          "[YouTube Digest Panel] Direct seekTo failed, falling back to relay:",
+          "[Jeffrey Video Digest Panel] Direct seekTo failed, falling back to relay:",
           directErr.message,
         );
       }
@@ -1067,9 +1570,9 @@ async function seekTo(seconds) {
       action: "relayToContent",
       payload,
     });
-    debugLog("[YouTube Digest Panel] seekTo relay result:", result);
+    debugLog("[Jeffrey Video Digest Panel] seekTo relay result:", result);
   } catch (error) {
-    console.error("[YouTube Digest Panel] seekTo error:", error);
+    console.error("[Jeffrey Video Digest Panel] seekTo error:", error);
   }
 }
 
@@ -1146,7 +1649,7 @@ async function copyToClipboardWithFeedback(text, buttonId) {
 
   const success = await copyToClipboard(text);
   if (success) {
-    btn.textContent = "✓ Copied";
+    btn.textContent = t("copied");
     setTimeout(() => {
       btn.textContent = original;
     }, 2000);
@@ -1191,7 +1694,7 @@ function setupExplainFeature() {
   const tooltip = document.createElement("div");
   tooltip.id = "explainTooltip";
   tooltip.className = "explain-tooltip";
-  tooltip.innerHTML = `<button class="explain-btn">💡 Explain</button>`;
+  tooltip.innerHTML = `<button class="explain-btn">${t("explain")}</button>`;
   tooltip.style.display = "none";
   document.body.appendChild(tooltip);
 
@@ -1265,14 +1768,14 @@ async function showExplanation(selectedText) {
   modal.innerHTML = `
     <div class="explain-modal">
       <div class="explain-modal-header">
-        <div class="explain-modal-title">Explain</div>
-        <button class="explain-modal-close" id="closeExplain">✕</button>
+        <div class="explain-modal-title">${escapeHtml(t("explainTitle"))}</div>
+        <button class="explain-modal-close" id="closeExplain" aria-label="${escapeHtml(t("close"))}">✕</button>
       </div>
       <div class="explain-selected-text">"${escapeHtml(selectedText.substring(0, 200))}${selectedText.length > 200 ? "..." : ""}"</div>
       <div class="explain-modal-content" id="explanationContent">
         <div class="explain-loading">
           <div class="loading-bar"></div>
-          <span>Analyzing...</span>
+          <span>${escapeHtml(t("explaining"))}</span>
         </div>
       </div>
     </div>
@@ -1304,11 +1807,11 @@ async function showExplanation(selectedText) {
     if (result.success) {
       contentDiv.innerHTML = `<div class="explain-text">${escapeHtml(result.explanation).replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>")}</div>`;
     } else {
-      contentDiv.innerHTML = `<div class="explain-error">Failed to get explanation: ${escapeHtml(result.error)}</div>`;
+      contentDiv.innerHTML = `<div class="explain-error">${escapeHtml(t("explainFailed"))}: ${escapeHtml(result.error)}</div>`;
     }
   } catch (error) {
     const contentDiv = document.getElementById("explanationContent");
-    contentDiv.innerHTML = `<div class="explain-error">Error: ${escapeHtml(error.message)}</div>`;
+    contentDiv.innerHTML = `<div class="explain-error">${escapeHtml(t("errorLabel"))}: ${escapeHtml(error.message)}</div>`;
   }
 }
 
@@ -1352,6 +1855,7 @@ async function saveToCache(videoId) {
 
     const cacheData = {
       analysis: currentAnalysis, // May be null if not yet analyzed
+      analysisZh: currentAnalysisZh,
       transcript: currentTranscript,
       transcriptText: currentTranscriptText,
       transcriptTimestamped: currentTranscriptTimestamped,
@@ -1411,7 +1915,7 @@ async function evictOldCacheEntries(maxEntries) {
       .map((e) => e.key);
     if (toRemove.length > 0) {
       await chrome.storage.local.remove(toRemove);
-      debugLog(`[YouTube Digest] Evicted ${toRemove.length} old cache entries`);
+      debugLog(`[Jeffrey Video Digest] Evicted ${toRemove.length} old cache entries`);
     }
   } catch (error) {
     console.error("Cache eviction error:", error);
@@ -1473,7 +1977,7 @@ async function loadNotes(videoId) {
       renderNotes(result.notes, videoId);
     }
   } catch (error) {
-    console.error("[YouTube Digest Panel] Load notes error:", error);
+    console.error("[Jeffrey Video Digest Panel] Load notes error:", error);
   }
 }
 
@@ -1491,8 +1995,8 @@ function renderNotes(notes, filteredVideoId) {
   if (!notes || notes.length === 0) {
     notesIntro.style.display = "block";
     notesIntro.textContent = filteredVideoId
-      ? "No notes for this video yet. Hover over the video and click 📝 Note to save."
-      : "No notes saved yet. Hover over a video and click 📝 Note to save.";
+      ? t("noNotesThisVideo")
+      : t("noNotesYet");
     return;
   }
 
@@ -1505,13 +2009,13 @@ function renderNotes(notes, filteredVideoId) {
       <div class="note-header">
         <span class="note-timestamp" data-url="${escapeHtml(note.timestampedUrl)}" data-seconds="${Number(note.timestampSeconds) || 0}">${escapeHtml(note.timestamp)}</span>
         ${!filteredVideoId ? `<span class="note-video-title">${escapeHtml(note.videoTitle)}</span>` : ""}
-        <button class="note-delete" data-id="${escapeHtml(note.id)}" title="Delete note">✕</button>
+        <button class="note-delete" data-id="${escapeHtml(note.id)}" title="${escapeHtml(t("deleteNote"))}">✕</button>
       </div>
       <div class="note-text">"${escapeHtml(note.text)}"</div>
       <div class="note-actions">
-        <button class="note-action-btn note-copy-text">⧉ Copy text</button>
-        <button class="note-action-btn note-copy-link" data-url="${escapeHtml(note.timestampedUrl)}">🔗 Copy timestamp</button>
-        <button class="note-action-btn note-play" data-seconds="${Number(note.timestampSeconds) || 0}">▶ Play</button>
+        <button class="note-action-btn note-copy-text">${t("copyText")}</button>
+        <button class="note-action-btn note-copy-link" data-url="${escapeHtml(note.timestampedUrl)}">${t("copyTimestamp")}</button>
+        <button class="note-action-btn note-play" data-seconds="${Number(note.timestampSeconds) || 0}">${t("play")}</button>
       </div>
     `;
 
@@ -1536,9 +2040,9 @@ function renderNotes(notes, filteredVideoId) {
         try {
           await navigator.clipboard.writeText(note.text);
           const btn = noteEl.querySelector(".note-copy-text");
-          btn.textContent = "✓ Copied!";
+          btn.textContent = t("copiedExclaim");
           setTimeout(() => {
-            btn.textContent = "⧉ Copy text";
+            btn.textContent = t("copyText");
           }, 2000);
         } catch (err) {
           console.error("Copy failed:", err);
@@ -1552,9 +2056,9 @@ function renderNotes(notes, filteredVideoId) {
         try {
           await navigator.clipboard.writeText(note.timestampedUrl);
           const btn = noteEl.querySelector(".note-copy-link");
-          btn.textContent = "✓ Copied!";
+          btn.textContent = t("copiedExclaim");
           setTimeout(() => {
-            btn.textContent = "🔗 Copy timestamp";
+            btn.textContent = t("copyTimestamp");
           }, 2000);
         } catch (err) {
           console.error("Copy failed:", err);
@@ -1580,7 +2084,7 @@ async function deleteNote(noteId) {
       noteId: noteId,
     });
   } catch (error) {
-    console.error("[YouTube Digest Panel] Delete note error:", error);
+    console.error("[Jeffrey Video Digest Panel] Delete note error:", error);
   }
 }
 
@@ -1608,10 +2112,11 @@ function startPlaybackTracking() {
   // Poll video time every 500ms
   autoScrollInterval = setInterval(() => playbackTrackingTick(), 500);
 
-  // Listen for manual scrolls on the content area
-  const contentArea = document.getElementById("contentArea");
-  contentArea.removeEventListener("scroll", onContentAreaScroll);
-  contentArea.addEventListener("scroll", onContentAreaScroll);
+  // Listen for manual scrolls on the transcript list only. The outer
+  // content area no longer scrolls on the Transcript tab.
+  const transcriptList = document.getElementById("transcriptList");
+  transcriptList?.removeEventListener("scroll", onTranscriptListScroll);
+  transcriptList?.addEventListener("scroll", onTranscriptListScroll);
 }
 
 /**
@@ -1626,6 +2131,10 @@ function stopPlaybackTracking() {
   autoScrollEnabled = true; // Reset for next time
   lastAutoScrollTime = 0;
   document.getElementById("followPlaybackBtn").style.display = "none";
+
+  document
+    .getElementById("transcriptList")
+    ?.removeEventListener("scroll", onTranscriptListScroll);
 
   // Remove active highlights
   document
@@ -1656,6 +2165,26 @@ async function playbackTrackingTick() {
 }
 
 /**
+ * Scroll only the transcript list. Avoid scrollIntoView — it can move outer
+ * containers and paint rows into the gap under the tab bar.
+ */
+function scrollTranscriptEntryIntoView(entry) {
+  const list = document.getElementById("transcriptList");
+  if (!list || !entry || !list.contains(entry)) return false;
+
+  const listRect = list.getBoundingClientRect();
+  const entryRect = entry.getBoundingClientRect();
+  const delta =
+    entryRect.top -
+    listRect.top -
+    (list.clientHeight / 2 - entryRect.height / 2);
+
+  lastAutoScrollTime = Date.now();
+  list.scrollTop += delta;
+  return true;
+}
+
+/**
  * Scrolls the transcript to the entry currently being spoken (the one
  * carrying the active-playback highlight). Returns false if nothing is
  * highlighted yet. Stamps lastAutoScrollTime BEFORE scrolling so the scroll
@@ -1667,10 +2196,7 @@ function scrollToActiveEntry() {
     "#transcriptList .transcript-entry.active-playback",
   );
   if (!activeEntry) return false;
-
-  lastAutoScrollTime = Date.now();
-  activeEntry.scrollIntoView({ behavior: "smooth", block: "center" });
-  return true;
+  return scrollTranscriptEntryIntoView(activeEntry);
 }
 
 /**
@@ -1711,17 +2237,16 @@ function highlightActiveEntry(currentSeconds) {
 
   // Only scroll if auto-scroll is enabled
   if (autoScrollEnabled) {
-    lastAutoScrollTime = Date.now();
-    activeEntry.scrollIntoView({ behavior: "smooth", block: "center" });
+    scrollTranscriptEntryIntoView(activeEntry);
   }
 }
 
 /**
- * Scroll event handler for the content area.
+ * Scroll event handler for the transcript list.
  * Detects manual scrolling and disables auto-scroll so the user
  * can read at their own pace without being yanked back.
  */
-function onContentAreaScroll() {
+function onTranscriptListScroll() {
   // Ignore scroll events within 1 second of a programmatic scroll
   // (smooth scroll animations can last longer than a simple boolean flag)
   if (Date.now() - lastAutoScrollTime < 1000) return;
@@ -1740,8 +2265,8 @@ function onContentAreaScroll() {
 function getOriginalTranscriptLabel() {
   const language = String(currentTranscriptLanguage || "").trim();
   return /^[A-Za-z0-9-]{1,20}$/.test(language)
-    ? `Original (${language})`
-    : "Original";
+    ? t("originalWithLang", { language })
+    : t("modeOriginal");
 }
 
 function getActiveTranscriptSegments() {
@@ -1753,11 +2278,13 @@ function transcriptTranslationCacheKey(segment) {
 }
 
 function setTranscriptModeButtons(mode) {
-  document.querySelectorAll(".transcript-mode-btn").forEach((button) => {
-    const active = button.dataset.transcriptMode === mode;
-    button.classList.toggle("active", active);
-    button.setAttribute("aria-pressed", String(active));
-  });
+  document
+    .querySelectorAll("#transcriptModeControl .transcript-mode-btn")
+    .forEach((button) => {
+      const active = button.dataset.transcriptMode === mode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
 }
 
 async function handleTranscriptModeChange(mode) {
@@ -1786,9 +2313,9 @@ function renderTranscriptSegmentContent(segment, mode, translated, error) {
   if (translated) {
     translationHtml = renderSubtitleInlineMarkup(translated);
   } else if (error) {
-    translationHtml = `${escapeHtml(error)}<button class="translation-retry-btn" type="button">Retry</button>`;
+    translationHtml = `${escapeHtml(error)}<button class="translation-retry-btn" type="button">${escapeHtml(t("retry"))}</button>`;
   } else {
-    translationHtml = "Waiting for translation…";
+    translationHtml = t("waitingTranslation");
   }
 
   if (mode === "bilingual") {
@@ -1813,8 +2340,8 @@ function renderTranscriptModeRows(segments, mode) {
     mode === "bilingual"
       ? `${originalLabel} + 简体中文`
       : `简体中文 · translated from ${originalLabel}`;
-  badge.innerHTML = `<span class="source-dot source-dot--subs"></span> From video subtitles · ${modeLabel}`;
-  transcriptList.parentElement.insertBefore(badge, transcriptList);
+  badge.innerHTML = `<span class="source-dot source-dot--subs"></span> ${escapeHtml(t("fromSubtitles"))} · ${escapeHtml(modeLabel)}`;
+  mountTranscriptSourceBadge(badge);
 
   const rows = [];
   segments.forEach((segment, index) => {
@@ -1865,7 +2392,7 @@ function alignTranslatedSegmentBatch(sourceSegments, responseSegments) {
   return sourceSegments.map((segment) => ({
     id: segment.id,
     text: translatedById.get(segment.id) || "",
-    error: translatedById.has(segment.id) ? "" : "Translation unavailable.",
+    error: translatedById.has(segment.id) ? "" : t("translationUnavailable"),
   }));
 }
 
@@ -1946,7 +2473,7 @@ async function requestTranscriptTranslationBatch(
     const aligned = alignTranslatedSegmentBatch(sourceBatch, responseSegments);
     aligned.forEach((item, batchIndex) => {
       if (!result?.success) {
-        item.error = result?.error || "Translation failed.";
+        item.error = result?.error || t("translationFailed");
       }
       updateTranslatedRow(
         sourceBatch[batchIndex],
@@ -1962,7 +2489,7 @@ async function requestTranscriptTranslationBatch(
       updateTranslatedRow(
         segment,
         indices[batchIndex],
-        { id: segment.id, text: "", error: error.message || "Translation failed." },
+        { id: segment.id, text: "", error: error.message || t("translationFailed") },
         generation,
       );
     });
@@ -1982,7 +2509,7 @@ function retryTranslationSegment(index, generation) {
     const translation = row.querySelector(".transcript-translation");
     if (translation) {
       translation.className = "transcript-translation translation-pending";
-      translation.textContent = "Retrying…";
+      translation.textContent = t("retrying");
     }
   }
   activeTranslationQueue.enqueue(index, true);
@@ -2053,7 +2580,7 @@ async function translateTranscript() {
         .forEach((entry) => enqueue(Number(entry.target.dataset.segmentIndex)));
     },
     {
-      root: document.getElementById("contentArea"),
+      root: document.getElementById("transcriptList"),
       rootMargin: "320px 0px",
       threshold: 0,
     },
@@ -2082,4 +2609,11 @@ globalThis.__YTD_TRANSCRIPT_TESTING__ = {
   alignTranslatedSegmentBatch,
   renderSubtitleInlineMarkup,
   renderTranscriptSegmentContent,
+  flattenOverviewTranslationSegments,
+  applyOverviewTranslations,
+  UI_COPY,
+  t,
+  translateUi,
+  getUiLanguage: () => uiLanguage,
+  applySidepanelLanguage,
 };

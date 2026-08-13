@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>YouTube Digest</title>
+    <title>Jeffrey Video Digest</title>
     <link rel="stylesheet" href="sidepanel.css" />
   </head>
   <body>
     <!-- HEADER -->
-    <!-- Note: the panel's own "YouTube Digest" title is shown by Chrome's side-panel
+    <!-- Note: the panel's own "Jeffrey Video Digest" title is shown by Chrome's side-panel
          title bar, so we don't repeat a logo here. -->
     <div class="header">
       <div class="header-top">
@@ -17,22 +17,123 @@
           <div class="video-title" id="videoTitle"></div>
           <div class="video-channel" id="videoChannel"></div>
         </div>
-        <button
-          class="settings-btn"
-          id="settingsBtn"
-          type="button"
-          title="Open YouTube Digest settings"
-          aria-label="Open YouTube Digest settings"
-        >
-          Settings
-        </button>
+        <div class="header-actions">
+          <div
+            class="language-slider"
+            role="group"
+            aria-label="Interface language"
+            data-i18n-aria-label="languageGroupLabel"
+          >
+            <span class="language-slider-label" data-lang-side="en">EN</span>
+            <button
+              id="languageSlider"
+              class="language-switch"
+              type="button"
+              role="switch"
+              aria-checked="false"
+              aria-label="Use Chinese interface"
+              data-i18n-aria-label="languageSwitchLabel"
+            ></button>
+            <span class="language-slider-label" data-lang-side="zh-CN"
+              >中文</span
+            >
+          </div>
+          <button
+            class="settings-btn"
+            id="settingsBtn"
+            type="button"
+            title="Open Jeffrey Video Digest settings"
+            aria-label="Open Jeffrey Video Digest settings"
+            data-i18n="settings"
+            data-i18n-title="settingsTitle"
+            data-i18n-aria-label="settingsTitle"
+          >
+            Settings
+          </button>
+        </div>
       </div>
 
       <!-- Tab navigation -->
       <div class="tabs" id="tabsNav" style="display: none">
-        <button class="tab active" data-tab="transcript">Transcript</button>
-        <button class="tab" data-tab="overview">Overview</button>
-        <button class="tab" data-tab="notes">Notes</button>
+        <button class="tab active" data-tab="transcript" data-i18n="tabTranscript">
+          Transcript
+        </button>
+        <button class="tab" data-tab="overview" data-i18n="tabOverview">
+          Overview
+        </button>
+        <button class="tab" data-tab="notes" data-i18n="tabNotes">Notes</button>
+      </div>
+    </div>
+
+    <!-- Transcript controls sit outside the scrolling content so rows cannot
+         paint into the gap under the tab bar (manual or auto scroll). -->
+    <div class="transcript-toolbar" id="transcriptToolbar" style="display: none">
+      <div class="transcript-sticky-bar">
+        <div class="section-header transcript-section-header">
+          <div class="transcript-header-main">
+            <div class="section-title-wrap">
+              <div class="section-title" data-i18n="fullTranscript">
+                Full Transcript
+              </div>
+            </div>
+            <div
+              class="transcript-mode-control"
+              id="transcriptModeControl"
+              role="group"
+              aria-label="Transcript language"
+              data-i18n-aria-label="transcriptModeLabel"
+            >
+              <button
+                class="transcript-mode-btn active"
+                type="button"
+                data-transcript-mode="original"
+                aria-pressed="true"
+                data-i18n="modeOriginal"
+              >
+                Original
+              </button>
+              <button
+                class="transcript-mode-btn"
+                type="button"
+                data-transcript-mode="zh"
+                aria-pressed="false"
+              >
+                中文
+              </button>
+              <button
+                class="transcript-mode-btn"
+                type="button"
+                data-transcript-mode="bilingual"
+                aria-pressed="false"
+              >
+                双语
+              </button>
+              <span
+                class="translation-spinner"
+                id="langSpinner"
+                aria-label="Translating"
+                data-i18n-aria-label="translating"
+              ></span>
+            </div>
+          </div>
+          <div class="transcript-actions">
+            <button
+              class="enhance-btn"
+              id="copyTranscriptBtn"
+              data-i18n="copy"
+            >
+              Copy
+            </button>
+            <button
+              class="enhance-btn"
+              id="exportTranscriptBtn"
+              data-i18n="export"
+            >
+              Export
+            </button>
+          </div>
+        </div>
+        <div id="transcriptSourceHost" class="transcript-source-host"></div>
       </div>
     </div>
 
@@ -41,8 +142,8 @@
       <!-- WELCOME STATE -->
       <div id="welcomeState" class="welcome-container">
         <div class="welcome-icon">&#9655;</div>
-        <div class="welcome-title">Ready to Digest</div>
-        <div class="welcome-desc">
+        <div class="welcome-title" data-i18n="welcomeTitle">Ready to Digest</div>
+        <div class="welcome-desc" data-i18n="welcomeDesc">
           Navigate to a YouTube video and click the extension icon to get an
           AI-powered digest.
         </div>
@@ -52,8 +153,14 @@
       <div id="loadingState" style="display: none">
         <div class="loading-container">
           <div class="loading-bar"></div>
-          <div class="loading-text" id="loadingText">Fetching transcript</div>
-          <div class="loading-subtext" id="loadingSubtext">
+          <div class="loading-text" id="loadingText" data-i18n="loadingTranscript">
+            Fetching transcript
+          </div>
+          <div
+            class="loading-subtext"
+            id="loadingSubtext"
+            data-i18n="loadingTranscriptSub"
+          >
             Extracting captions from video...
           </div>
         </div>
@@ -63,11 +170,15 @@
       <div id="errorState" style="display: none">
         <div class="error-container">
           <div class="error-icon">&#9888;</div>
-          <div class="error-title" id="errorTitle">Error</div>
-          <div class="error-message" id="errorMessage">
+          <div class="error-title" id="errorTitle" data-i18n="errorTitle">
+            Error
+          </div>
+          <div class="error-message" id="errorMessage" data-i18n="errorGeneric">
             Something went wrong.
           </div>
-          <button class="error-btn" id="errorBtn">Try Again</button>
+          <button class="error-btn" id="errorBtn" data-i18n="tryAgain">
+            Try Again
+          </button>
         </div>
       </div>
 
@@ -75,67 +186,60 @@
       <div id="resultsState" style="display: none">
         <!-- TAB: Transcript (default - no LLM required) -->
         <div class="tab-panel active" data-panel="transcript">
-          <div class="section">
-            <div class="section-header transcript-section-header">
-              <div class="transcript-header-main">
-                <div class="section-title-wrap">
-                  <div class="section-title">Full Transcript</div>
-                </div>
-                <div
-                  class="transcript-mode-control"
-                  id="transcriptModeControl"
-                  role="group"
-                  aria-label="Transcript language"
-                >
-                  <button
-                    class="transcript-mode-btn active"
-                    type="button"
-                    data-transcript-mode="original"
-                    aria-pressed="true"
-                  >Original</button>
-                  <button
-                    class="transcript-mode-btn"
-                    type="button"
-                    data-transcript-mode="zh"
-                    aria-pressed="false"
-                  >中文</button>
-                  <button
-                    class="transcript-mode-btn"
-                    type="button"
-                    data-transcript-mode="bilingual"
-                    aria-pressed="false"
-                  >双语</button>
-                  <span
-                    class="translation-spinner"
-                    id="langSpinner"
-                    aria-label="Translating"
-                  ></span>
-                </div>
-              </div>
-              <div class="transcript-actions">
-                <button class="enhance-btn" id="copyTranscriptBtn">Copy</button>
-                <button class="enhance-btn" id="exportTranscriptBtn">
-                  Export
-                </button>
-              </div>
-            </div>
+          <div class="section transcript-section">
             <div id="transcriptList"></div>
           </div>
         </div>
 
         <!-- TAB: Overview (chapters + key quotes) - requires LLM -->
         <div class="tab-panel" data-panel="overview">
+          <div class="overview-toolbar">
+            <div
+              class="transcript-mode-control overview-mode-control"
+              id="overviewModeControl"
+              role="group"
+              aria-label="Overview language"
+              data-i18n-aria-label="overviewModeLabel"
+            >
+              <button
+                class="transcript-mode-btn overview-mode-btn active"
+                type="button"
+                data-overview-mode="original"
+                aria-pressed="true"
+                data-i18n="modeOriginal"
+              >
+                Original
+              </button>
+              <button
+                class="transcript-mode-btn overview-mode-btn"
+                type="button"
+                data-overview-mode="zh"
+                aria-pressed="false"
+              >
+                中文
+              </button>
+              <span
+                class="translation-spinner"
+                id="overviewLangSpinner"
+                aria-label="Translating"
+                data-i18n-aria-label="translating"
+              ></span>
+            </div>
+          </div>
+
           <!-- Chapters -->
           <div class="section">
-            <div class="section-title">Chapters</div>
+            <div class="section-title" data-i18n="chapters">Chapters</div>
             <ul class="chapter-list" id="chapterList">
               <li
                 class="chapter-item"
+                data-placeholder="chapters"
                 style="
                   color: var(--text-muted);
                   cursor: default;
                   border-color: var(--border);
                 "
+                data-i18n="chaptersPlaceholder"
               >
                 Chapters will appear here
               </li>
@@ -144,17 +248,22 @@
 
           <!-- Key Quotes -->
           <div class="section">
-            <div class="section-title">Key Quotes</div>
+            <div class="section-title" data-i18n="keyQuotes">Key Quotes</div>
             <div id="quotesList">
               <div
                 class="quote-item"
+                data-placeholder="quotes"
                 style="
                   color: var(--text-muted);
                   border-left-color: var(--border);
                   cursor: default;
                 "
               >
-                <div class="quote-text" style="font-style: normal">
+                <div
+                  class="quote-text"
+                  style="font-style: normal"
+                  data-i18n="quotesPlaceholder"
+                >
                   Quotes will be extracted when you view this tab...
                 </div>
               </div>
@@ -166,12 +275,13 @@
         <div class="tab-panel" data-panel="notes">
           <div class="section">
             <div class="section-header">
-              <div class="section-title">Saved Notes</div>
+              <div class="section-title" data-i18n="savedNotes">Saved Notes</div>
               <div class="notes-filter">
                 <button
                   class="enhance-btn active"
                   id="notesFilterThis"
                   aria-pressed="true"
+                  data-i18n="notesThisVideo"
                 >
                   This Video
                 </button>
@@ -179,12 +289,13 @@
                   class="enhance-btn"
                   id="notesFilterAll"
                   aria-pressed="false"
+                  data-i18n="notesAll"
                 >
                   All Notes
                 </button>
               </div>
             </div>
-            <p class="notes-intro" id="notesIntro">
+            <p class="notes-intro" id="notesIntro" data-i18n="notesIntro">
               Move your mouse over the video and click the 📝 Note button to
               save timestamped notes, or press the "n" key while the video is
               focused.
@@ -200,11 +311,13 @@
       class="follow-playback-btn"
       id="followPlaybackBtn"
       style="display: none"
+      data-i18n="followPlayback"
     >
       Follow playback
     </button>
 
     <script src="settings.js"></script>
+    <script src="i18n.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>

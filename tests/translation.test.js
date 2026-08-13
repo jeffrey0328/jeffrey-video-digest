@@ -24,9 +24,11 @@ function loadSidepanelHelpers({
     clearInterval() {},
     IntersectionObserver: class {},
     CSS: { escape: (value) => value },
+    YTD_I18N: require("../i18n.js"),
     window: { getSelection: () => null, close() {} },
     document: {
       addEventListener() {},
+      documentElement: { lang: "en" },
       querySelectorAll: () => [],
       querySelector: () => null,
       getElementById: () => null,
@@ -43,6 +45,9 @@ function loadSidepanelHelpers({
               .replaceAll(">", "&gt;")
               .replaceAll('"', "&quot;");
           },
+          style: {},
+          classList: { toggle() {} },
+          setAttribute() {},
         };
       },
     },
@@ -50,6 +55,15 @@ function loadSidepanelHelpers({
       runtime: { onMessage: listeners, sendMessage },
       windows: { getCurrent: () => Promise.resolve({ id: 1 }) },
       tabs: { onUpdated: listeners, onActivated: listeners },
+      storage: {
+        local: {
+          async get() {
+            return {};
+          },
+          async set() {},
+        },
+        onChanged: { addListener() {} },
+      },
     },
     YTD_SETTINGS: {},
   };
@@ -168,13 +182,72 @@ const nextTurn = () => new Promise((resolve) => setImmediate(resolve));
 test("Transcript header exposes and wires Original, Chinese, and bilingual modes", () => {
   const html = read("sidepanel.html");
   const js = read("sidepanel.js");
-  assert.match(html, /data-transcript-mode="original"[\s\S]*?>Original</);
-  assert.match(html, /data-transcript-mode="zh"[\s\S]*?>\u4e2d\u6587</);
-  assert.match(html, /data-transcript-mode="bilingual"[\s\S]*?>\u53cc\u8bed</);
+  assert.match(
+    html,
+    /data-transcript-mode="original"[\s\S]*?>\s*Original\s*</,
+  );
+  assert.match(html, /data-transcript-mode="zh"[\s\S]*?>\s*\u4e2d\u6587\s*</);
+  assert.match(
+    html,
+    /data-transcript-mode="bilingual"[\s\S]*?>\s*\u53cc\u8bed\s*</,
+  );
   assert.match(js, /handleTranscriptModeChange\(button\.dataset\.transcriptMode\)/);
   assert.match(js, /contentType: "transcriptBatch"/);
   assert.doesNotMatch(js, /English \+ Chinese/);
-  assert.match(js, /Original \(\$\{language\}\)/);
+  assert.match(js, /originalWithLang/);
+  assert.match(js, /t\("modeOriginal"\)/);
+});
+
+test("Overview header exposes Original and Chinese modes without bilingual", () => {
+  const html = read("sidepanel.html");
+  const js = read("sidepanel.js");
+  assert.match(
+    html,
+    /data-overview-mode="original"[\s\S]*?>\s*Original\s*</,
+  );
+  assert.match(html, /data-overview-mode="zh"[\s\S]*?>\s*\u4e2d\u6587\s*</);
+  assert.doesNotMatch(html, /data-overview-mode="bilingual"/);
+  assert.match(js, /handleOverviewModeChange\(button\.dataset\.overviewMode\)/);
+  assert.match(js, /analysisZh/);
+  assert.match(js, /flattenOverviewTranslationSegments/);
+  assert.match(js, /translateOverviewAnalysis/);
+});
+
+test("overview translation flattens chapters and quotes into stable segment ids", () => {
+  const { flattenOverviewTranslationSegments, applyOverviewTranslations } =
+    loadSidepanelHelpers();
+  const analysis = {
+    chapters: [
+      { title: "Intro", summary: "Opening ideas", timestamp: "0:00", timestampSeconds: 0 },
+      { title: "Deep dive", summary: "", timestamp: "1:00", timestampSeconds: 60 },
+    ],
+    keyQuotes: [
+      { quote: "Stay curious", timestamp: "0:30", timestampSeconds: 30 },
+    ],
+  };
+  const segments = flattenOverviewTranslationSegments(analysis);
+  assert.deepEqual(JSON.parse(JSON.stringify(segments)), [
+    { id: "ch0t", text: "Intro" },
+    { id: "ch0s", text: "Opening ideas" },
+    { id: "ch1t", text: "Deep dive" },
+    { id: "q0", text: "Stay curious" },
+  ]);
+
+  const translated = applyOverviewTranslations(
+    analysis,
+    new Map([
+      ["ch0t", "开场"],
+      ["ch0s", "开场观点"],
+      ["ch1t", "深入"],
+      ["q0", "保持好奇"],
+    ]),
+  );
+  assert.equal(translated.chapters[0].title, "开场");
+  assert.equal(translated.chapters[0].summary, "开场观点");
+  assert.equal(translated.chapters[1].title, "深入");
+  assert.equal(translated.chapters[1].summary, "");
+  assert.equal(translated.keyQuotes[0].quote, "保持好奇");
+  assert.equal(translated.keyQuotes[0].timestampSeconds, 30);
 });
 
 test("semantic segmentation rebuilds sentences across caption boundaries", () => {

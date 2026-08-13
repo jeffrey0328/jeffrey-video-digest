@@ -30,8 +30,8 @@ function createLocalStorage() {
 }
 
 test("Settings copy covers English and Simplified Chinese", () => {
-  assert.equal(options.translate("en", "pageTitle"), "YouTube Digest Settings");
-  assert.equal(options.translate("zh-CN", "pageTitle"), "YouTube Digest 设置");
+  assert.equal(options.translate("en", "pageTitle"), "Jeffrey Video Digest Settings");
+  assert.equal(options.translate("zh-CN", "pageTitle"), "Jeffrey Video Digest 设置");
   assert.equal(options.translate("en", "saveSettings"), "Save settings");
   assert.equal(options.translate("zh-CN", "saveSettings"), "保存设置");
   assert.equal(
@@ -93,32 +93,62 @@ test("non-extension preview safely persists language in localStorage", async () 
   assert.equal(options.normalizeLanguage("unsupported"), "en");
 });
 
-test("language controls expose a labelled group and one pressed button", () => {
+test("language controls expose a labelled slider switch", () => {
   const html = read("options.html");
-  assert.match(
-    html,
-    /class="language-switch"[\s\S]*role="group"[\s\S]*aria-label="Interface language"/,
-  );
-  assert.match(
-    html,
-    /data-language="en"[\s\S]*aria-pressed="true"[\s\S]*English/,
-  );
-  assert.match(
-    html,
-    /data-language="zh-CN"[\s\S]*aria-pressed="false"[\s\S]*中文/,
-  );
+  const i18n = require("../i18n.js");
 
-  const buttons = ["en", "zh-CN"].map((language) => ({
-    dataset: { language },
+  assert.match(
+    html,
+    /class="language-slider"[\s\S]*role="group"[\s\S]*aria-label="Interface language"/,
+  );
+  assert.match(
+    html,
+    /id="languageSlider"[\s\S]*role="switch"[\s\S]*aria-checked="false"/,
+  );
+  assert.match(html, /data-lang-side="en"[\s\S]*EN/);
+  assert.match(html, /data-lang-side="zh-CN"[\s\S]*中文/);
+
+  const doc = {
+    querySelectorAll(selector) {
+      if (selector.includes("language-switch") || selector.includes("#languageSlider")) {
+        return [slider];
+      }
+      if (selector.includes("[data-lang-side]")) {
+        return labels;
+      }
+      return [];
+    },
+  };
+  const slider = {
     attributes: {},
     setAttribute(name, value) {
       this.attributes[name] = value;
     },
+  };
+  const labels = ["en", "zh-CN"].map((language) => ({
+    language,
+    classList: {
+      values: new Set(),
+      toggle(name, force) {
+        if (force) this.values.add(name);
+        else this.values.delete(name);
+      },
+    },
+    attributes: {},
+    getAttribute(name) {
+      return name === "data-lang-side" ? this.language : null;
+    },
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+    },
   }));
-  options.updateLanguageButtonState(buttons, "zh-CN");
 
-  assert.equal(buttons[0].attributes["aria-pressed"], "false");
-  assert.equal(buttons[1].attributes["aria-pressed"], "true");
+  i18n.updateLanguageSliderState(doc, "zh-CN");
+
+  assert.equal(slider.attributes["aria-checked"], "true");
+  assert.equal(labels[0].attributes["aria-current"], "false");
+  assert.equal(labels[1].attributes["aria-current"], "true");
+  assert.equal(labels[1].classList.values.has("is-active"), true);
 });
 
 test("customization guidance is concise and has a visible placeholder reminder", () => {
@@ -137,14 +167,14 @@ test("customization guidance is concise and has a visible placeholder reminder",
   );
   assert.equal(
     options.translate("en", "customizationStepFolder"),
-    "Open the extracted YouTube Digest project folder in your coding agent.",
+    "Open the extracted Jeffrey Video Digest project folder in your coding agent.",
   );
   assert.equal(
     options.translate("zh-CN", "customizationStepFolder"),
-    "在编程 Agent 中打开 YouTube Digest 解压后的项目文件夹。",
+    "在编程 Agent 中打开 Jeffrey Video Digest 解压后的项目文件夹。",
   );
-  assert.doesNotMatch(html, /~\/Documents\/youtube-digest/);
-  assert.doesNotMatch(html, /%USERPROFILE%\\Documents\\youtube-digest/);
+  assert.doesNotMatch(html, /~\/Documents\/jeffrey-video-digest/);
+  assert.doesNotMatch(html, /%USERPROFILE%\\Documents\\jeffrey-video-digest/);
 });
 
 test("customization prompt switches languages and preserves technical values", () => {
@@ -157,7 +187,7 @@ test("customization prompt switches languages and preserves technical values", (
   assert.match(html, /https:\/\/dash\.supadata\.ai\/auth\/sign-up/);
   assert.match(html, /https:\/\/platform\.deepseek\.com\/api_keys/);
   assert.ok(html.includes(`>${englishPrompt}</textarea>`));
-  assert.match(chinesePrompt, /^请把当前本地 YouTube Digest 工作区改为使用/);
+  assert.match(chinesePrompt, /^请把当前本地 Jeffrey Video Digest 工作区改为使用/);
   assert.notEqual(chinesePrompt, englishPrompt);
   assert.match(
     englishPrompt,
